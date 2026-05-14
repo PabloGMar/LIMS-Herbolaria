@@ -82,12 +82,24 @@ const LIMS = {
         return {
             producto: muestra.producto,
             estatus: muestra.estatus,
-            plan: specs.map(s => ({
-                prueba: s.prueba,
-                especificacion: s.limite, // En tu tabla se llama 'limite'
-                valorPrevio: mapaResultados[s.prueba]?.resultado || '',
-                evaluacion: mapaResultados[s.prueba]?.evaluacion || 'En Proceso'
-            }))
+            plan: specs.map(s => {
+                const res = mapaResultados[s.prueba];
+                
+                // Determinar tipo de UI (Legacy Logic)
+                let tipoUI = 'numerica';
+                const spec = (s.limite || '').toLowerCase();
+                if (spec.includes('unidades') || spec.includes('desvía')) tipoUI = 'compleja';
+                else if (s.prueba.toLowerCase().includes('aspecto') || !/\d/.test(spec)) tipoUI = 'cualitativa';
+
+                return {
+                    prueba: s.prueba,
+                    especificacion: s.limite,
+                    url_pno: s.url_pno || null,
+                    tipoUI: tipoUI,
+                    valorPrevio: res?.resultado || '',
+                    evaluacion: res?.evaluacion || '--'
+                };
+            })
         };
     },
 

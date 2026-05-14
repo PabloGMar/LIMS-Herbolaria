@@ -46,104 +46,107 @@
     </div>
 
     <!-- SECCIÓN PRINCIPAL DEL APP -->
-    <div id="appSection" class="hidden flex flex-col lg:flex-row min-h-screen animate-fade-in">
+    <div id="appSection" class="hidden flex min-h-screen">
         
-        <!-- SIDEBAR -->
-        <aside class="w-full lg:w-80 bg-white border-r border-slate-100 flex flex-col shrink-0 shadow-xl z-20">
-            <div class="p-10 border-b border-slate-50">
-                <div class="flex items-center gap-4">
-                    <div class="w-14 h-14 bg-blue-600 rounded-[1.2rem] flex items-center justify-center text-white shadow-lg">
-                        <i class="fas fa-flask text-2xl"></i>
+        <!-- SIDEBAR REFINADO -->
+        <aside class="sidebar flex flex-col shadow-sm">
+            <div class="mb-8 px-2">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white shadow-lg">
+                        <i class="fas fa-leaf text-xl"></i>
                     </div>
                     <div>
-                        <h2 class="font-black text-slate-800 text-xl leading-tight">LIMS Cloud</h2>
-                        <span class="text-[10px] text-blue-600 font-black uppercase tracking-tighter bg-blue-50 px-2 py-1 rounded">Versión Web App</span>
+                        <h2 class="font-black text-slate-800 text-base leading-tight">LIMS Cloud</h2>
+                        <span class="text-[9px] text-blue-600 font-black uppercase tracking-tighter bg-blue-50 px-1.5 py-0.5 rounded">V.NEXT</span>
                     </div>
                 </div>
             </div>
             
-            <nav class="flex-1 p-6 space-y-2 overflow-y-auto no-scrollbar">
+            <nav class="flex-1 space-y-1">
                 <button onclick="showView('muestras')" id="nav-muestras" class="nav-btn active">
-                    <i class="fas fa-vials w-6 text-xl"></i> Muestras
+                    <i class="fas fa-vials"></i> Muestras
                 </button>
                 <button onclick="showView('inventarios')" id="nav-inventarios" class="nav-btn">
-                    <i class="fas fa-boxes w-6 text-xl"></i> Inventarios
+                    <i class="fas fa-boxes"></i> Inventarios
                 </button>
-                <button onclick="openCalculadora()" class="nav-btn text-blue-600 font-black">
-                    <i class="fas fa-calculator w-6 text-xl"></i> Calculadora Lab
+                <button onclick="openCalculadora()" class="nav-btn !text-blue-600">
+                    <i class="fas fa-calculator"></i> Calculadora Lab
                 </button>
-                <button onclick="showView('equipos')" id="nav-equipos" class="nav-btn">
-                    <i class="fas fa-microscope w-6 text-xl"></i> Metrología
-                </button>
-                <button onclick="showView('audit')" id="nav-audit" class="nav-btn">
-                    <i class="fas fa-shield-alt w-6 text-xl"></i> Audit Trail
-                </button>
-                <button onclick="showView('usuarios')" id="nav-usuarios" class="nav-btn">
-                    <i class="fas fa-users-cog w-6 text-xl"></i> Personal
-                </button>
+                <div class="pt-4 mt-4 border-t border-slate-100">
+                    <button onclick="showView('equipos')" id="nav-equipos" class="nav-btn">
+                        <i class="fas fa-microscope"></i> Metrología
+                    </button>
+                    <button onclick="showView('audit')" id="nav-audit" class="nav-btn">
+                        <i class="fas fa-history"></i> Audit Trail
+                    </button>
+                    <button onclick="showView('usuarios')" id="nav-usuarios" class="nav-btn">
+                        <i class="fas fa-users-cog"></i> Personal
+                    </button>
+                </div>
             </nav>
 
-            <div class="p-8 border-t border-slate-50 bg-slate-50/50">
-                <div class="flex items-center gap-4 mb-8">
-                    <div class="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center text-white font-black text-lg" id="userInitial">U</div>
+            <div class="mt-auto pt-6 border-t border-slate-100">
+                <div class="flex items-center gap-3 p-2 bg-slate-50 rounded-xl mb-4">
+                    <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-black text-xs" id="userInitial">U</div>
                     <div class="overflow-hidden">
-                        <p class="text-sm font-black text-slate-800 truncate" id="userName">Nombre</p>
-                        <p class="text-[11px] text-slate-500 font-bold" id="userRole">Rol</p>
+                        <p class="text-xs font-bold text-slate-800 truncate" id="userName">Nombre</p>
+                        <p class="text-[9px] text-slate-500 font-black uppercase tracking-widest" id="userRole">Rol</p>
                     </div>
                 </div>
-                <button onclick="cerrarSesion()" class="w-full text-sm text-red-500 font-black hover:bg-red-50 py-4 rounded-2xl transition-all">
-                    <i class="fas fa-power-off mr-2"></i> Cerrar Sesión
+                <button onclick="cerrarSesion()" class="w-full text-[10px] text-slate-400 font-black hover:text-red-500 py-2 transition-all uppercase tracking-widest">
+                    <i class="fas fa-power-off mr-2"></i> Salir
                 </button>
             </div>
         </aside>
 
         <!-- CONTENIDO PRINCIPAL -->
-        <main class="flex-1 flex flex-col min-w-0 bg-slate-50/50 relative">
-            <header class="h-24 bg-white/80 backdrop-blur-md border-b border-slate-100 flex items-center justify-between px-12 shrink-0 sticky top-0 z-10">
-                <div class="flex items-center gap-6">
-                    <h1 class="text-3xl font-black text-slate-800" id="viewTitle">Panel de Muestras</h1>
-                    <span id="badgeCount" class="bg-blue-600 text-white px-4 py-1.5 rounded-full text-xs font-black shadow-lg shadow-blue-100">0</span>
+        <main class="main-content flex-1">
+            <header class="flex items-center justify-between mb-8">
+                <div>
+                    <h1 class="text-2xl font-black text-slate-800 tracking-tight" id="viewTitle">Panel de Muestras</h1>
+                    <p class="text-slate-400 text-xs font-medium">Gestión Analítica de Calidad</p>
                 </div>
-                <div class="flex items-center gap-4">
-                    <button onclick="actualizarDatos()" class="w-12 h-12 flex items-center justify-center text-slate-400 hover:text-blue-600 bg-white border border-slate-100 rounded-2xl shadow-sm transition-all">
-                        <i class="fas fa-sync-alt text-lg"></i>
+                <div class="flex items-center gap-3">
+                    <span id="badgeCount" class="bg-blue-600 text-white px-3 py-1 rounded-lg text-[10px] font-black shadow-md shadow-blue-100">0</span>
+                    <button onclick="actualizarDatos()" class="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-blue-600 bg-white border border-slate-200 rounded-lg transition-all">
+                        <i class="fas fa-sync-alt text-xs"></i>
                     </button>
                 </div>
             </header>
 
-            <div id="contentArea" class="flex-1 p-12 overflow-y-auto no-scrollbar">
+            <div id="contentArea">
                 
                 <!-- VISTA: MUESTRAS -->
                 <div id="view-muestras" class="animate-fade-in">
-                    <div class="flex justify-between items-center mb-12">
-                        <div class="flex gap-8">
-                            <div class="stat-card">
-                                <span class="label">Cuarentena</span>
-                                <span class="value text-amber-500" id="stat-cuarentena">0</span>
-                            </div>
-                            <div class="stat-card">
-                                <span class="label">En Análisis</span>
-                                <span class="value text-blue-500" id="stat-analisis">0</span>
-                            </div>
-                            <div class="stat-card">
-                                <span class="label">Aprobados</span>
-                                <span class="value text-emerald-500" id="stat-aprobados">0</span>
-                            </div>
+                    <div class="grid grid-cols-4 gap-4 mb-8">
+                        <div class="stat-card border-l-4 border-amber-400">
+                            <p class="stat-label">Cuarentena</p>
+                            <h3 id="stat-cuarentena" class="stat-value text-amber-600">0</h3>
                         </div>
-                        <button onclick="openModalMuestra()" class="btn-primary">
-                            <i class="fas fa-plus"></i> Nueva Muestra
-                        </button>
+                        <div class="stat-card border-l-4 border-blue-400">
+                            <p class="stat-label">En Análisis</p>
+                            <h3 id="stat-analisis" class="stat-value text-blue-600">0</h3>
+                        </div>
+                        <div class="stat-card border-l-4 border-emerald-400">
+                            <p class="stat-label">Liberados</p>
+                            <h3 id="stat-aprobados" class="stat-value text-emerald-600">0</h3>
+                        </div>
+                        <div class="flex items-center justify-end">
+                            <button onclick="openModalMuestra()" class="btn-primary">
+                                <i class="fas fa-plus mr-2"></i> Nueva Muestra
+                            </button>
+                        </div>
                     </div>
 
                     <div class="table-container">
-                        <table class="w-full text-left">
+                        <table>
                             <thead>
                                 <tr>
                                     <th>Lote Interno</th>
                                     <th>Producto</th>
                                     <th>Estatus</th>
                                     <th>Ingreso</th>
-                                    <th class="text-right">Acciones</th>
+                                    <th class="text-right">Acción</th>
                                 </tr>
                             </thead>
                             <tbody id="tablaMuestras"></tbody>
@@ -296,14 +299,14 @@
 
                 tbody.innerHTML = muestras.map(m => `
                     <tr class="hover:bg-slate-50 transition-all border-b border-slate-50">
-                        <td class="px-6 py-5 font-black text-slate-800 text-sm">${m.loteInterno}</td>
-                        <td class="px-6 py-5 text-slate-600 font-bold text-sm">${m.producto}</td>
-                        <td class="px-6 py-5">
-                            <span class="status-pill ${getEstatusClass(m.estatus)}">${m.estatus}</span>
+                        <td class="font-bold text-slate-800">${m.loteInterno}</td>
+                        <td class="text-slate-600 font-medium">${m.producto}</td>
+                        <td>
+                            <span class="status-pill status-${m.estatus.toLowerCase().replace(' ', '-')}">${m.estatus}</span>
                         </td>
-                        <td class="px-6 py-5 text-slate-400 text-[11px] font-black">${new Date(m.fechaIngreso).toLocaleDateString()}</td>
-                        <td class="px-6 py-5 text-right">
-                            <button onclick="openSlideOver('${m.loteInterno}')" class="text-blue-600 hover:bg-blue-600 hover:text-white px-4 py-2 rounded-xl text-[10px] font-black transition-all border border-blue-100 uppercase tracking-widest">Capturar</button>
+                        <td class="text-slate-400 text-xs font-bold">${new Date(m.fechaIngreso).toLocaleDateString()}</td>
+                        <td class="text-right">
+                            <button onclick="openSlideOver('${m.loteInterno}')" class="btn-primary bg-slate-100 !text-slate-700 hover:!bg-blue-600 hover:!text-white !py-2 !px-4 text-[10px]">VER DETALLE</button>
                         </td>
                     </tr>
                 `).join('');
@@ -457,61 +460,108 @@
                 const info = await LIMS.obtenerPlanDeAnalisis(lote);
                 
                 content.innerHTML = `
-                    <div class="mb-8">
-                        <span class="text-[10px] font-black text-blue-600 uppercase tracking-widest bg-blue-50 px-3 py-1 rounded-full border border-blue-100">Lote: ${lote}</span>
-                        <h2 class="text-3xl font-black text-slate-800 mt-4 leading-tight">${info.producto}</h2>
-                        <p class="text-slate-400 text-xs font-bold mt-2 italic">Estatus actual: ${info.estatus}</p>
+                    <div class="mb-6">
+                        <span class="text-[9px] font-black text-blue-600 uppercase tracking-widest bg-blue-50 px-2 py-0.5 rounded-md border border-blue-100">Lote: ${lote}</span>
+                        <h2 class="text-xl font-black text-slate-800 mt-2 leading-tight">${info.producto}</h2>
+                        <p class="text-slate-400 text-[10px] font-bold mt-1 uppercase">Estatus: ${info.estatus}</p>
                     </div>
 
-                    <div class="space-y-6 mb-20">
-                        ${info.plan.map((p, i) => `
-                            <div class="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm hover:shadow-md transition-all">
-                                <div class="flex justify-between items-start mb-4">
-                                    <h4 class="font-black text-slate-700 text-sm uppercase tracking-tighter">${p.prueba}</h4>
-                                    <span id="eval-${i}" class="status-pill ${getEstatusClass(p.evaluacion)}">${p.evaluacion}</span>
-                                </div>
-                                <p class="text-[11px] text-slate-400 mb-4 leading-relaxed"><b>Especificación:</b> ${p.especificacion}</p>
-                                <div class="flex gap-2">
+                    <div class="space-y-3 mb-20" id="contenedorPruebas">
+                        ${info.plan.map((p, i) => {
+                            let inputHTML = '';
+                            if (p.tipoUI === 'cualitativa') {
+                                inputHTML = `
+                                    <select id="input-${i}" class="form-input text-xs" onchange="guardarFila('${lote}', '${p.prueba}', ${i})">
+                                        <option value="">Seleccione...</option>
+                                        <option value="${p.especificacion}" ${p.valorPrevio === p.especificacion ? 'selected' : ''}>${p.especificacion}</option>
+                                        <option value="Otro" ${p.valorPrevio && p.valorPrevio !== p.especificacion ? 'selected' : ''}>Otro (Especificar)</option>
+                                    </select>
+                                    <input type="text" id="extra-${i}" class="form-input text-xs mt-2 ${p.valorPrevio && p.valorPrevio !== p.especificacion ? '' : 'hidden'}" 
+                                        placeholder="Especifique..." value="${p.valorPrevio}">
+                                `;
+                            } else if (p.tipoUI === 'compleja') {
+                                inputHTML = `
+                                    <select id="input-${i}" class="form-input text-xs" onchange="guardarFila('${lote}', '${p.prueba}', ${i})">
+                                        <option value="">Seleccione...</option>
+                                        <option value="Cumple con la prueba" ${p.valorPrevio === 'Cumple con la prueba' ? 'selected' : ''}>Cumple</option>
+                                        <option value="No cumple" ${p.valorPrevio === 'No cumple' ? 'selected' : ''}>No cumple</option>
+                                    </select>
+                                `;
+                            } else {
+                                inputHTML = `
                                     <input type="text" id="input-${i}" value="${p.valorPrevio}" 
-                                        class="form-input text-sm py-3" placeholder="Resultado...">
-                                    <button onclick="guardarFila('${lote}', '${p.prueba}', ${i})" 
-                                        class="bg-slate-800 text-white px-6 py-3 rounded-xl hover:bg-blue-600 transition-all">
-                                        <i class="fas fa-save"></i>
-                                    </button>
+                                        class="form-input text-xs" placeholder="Resultado..." 
+                                        onchange="guardarFila('${lote}', '${p.prueba}', ${i})">
+                                `;
+                            }
+
+                            const isOOS = p.evaluacion === 'OOS';
+                            
+                            return `
+                                <div class="bg-white rounded-xl p-4 border ${isOOS ? 'border-red-300 bg-red-50' : 'border-slate-100'} shadow-sm relative overflow-hidden">
+                                    <div class="flex justify-between items-start mb-2">
+                                        <div class="flex items-center gap-2">
+                                            <h4 class="font-bold text-slate-700 text-[11px] uppercase">${p.prueba}</h4>
+                                            ${p.url_pno ? `<a href="${p.url_pno}" target="_blank" class="text-blue-500 hover:text-blue-700"><i class="fas fa-file-alt"></i></a>` : ''}
+                                        </div>
+                                        <span id="eval-${i}" class="status-pill text-[9px] ${getEstatusClass(p.evaluacion)}">${p.evaluacion}</span>
+                                    </div>
+                                    <p class="text-[9px] text-slate-400 mb-3 italic">Límite: ${p.especificacion}</p>
+                                    ${inputHTML}
                                 </div>
-                            </div>
-                        `).join('')}
+                            `;
+                        }).join('')}
                     </div>
 
-                    <div class="sticky bottom-0 bg-white/80 backdrop-blur-xl p-6 border-t border-slate-100 -mx-8 flex gap-4">
-                        <button onclick="ejecutarDictamen('${lote}', 'Aprobado')" class="flex-1 bg-emerald-500 text-white py-4 rounded-2xl font-black shadow-lg shadow-emerald-200 hover:bg-emerald-600 transition-all uppercase text-xs tracking-widest">Aprobar Lote</button>
-                        <button onclick="ejecutarDictamen('${lote}', 'Rechazado')" class="flex-1 bg-rose-500 text-white py-4 rounded-2xl font-black shadow-lg shadow-rose-200 hover:bg-rose-600 transition-all uppercase text-xs tracking-widest">Rechazar (OOS)</button>
+                    <div class="sticky bottom-0 bg-white/90 backdrop-blur-xl p-4 border-t border-slate-100 -mx-8 flex gap-3">
+                        <button id="btnAprobarLote" onclick="ejecutarDictamen('${lote}', 'Liberado')" class="flex-1 bg-emerald-600 text-white py-3 rounded-xl font-bold shadow-lg hover:bg-emerald-700 transition-all text-[10px] uppercase tracking-widest">Liberar Lote</button>
+                        <button onclick="ejecutarDictamen('${lote}', 'Rechazado')" class="flex-1 bg-rose-600 text-white py-3 rounded-xl font-bold shadow-lg hover:bg-rose-700 transition-all text-[10px] uppercase tracking-widest">Rechazar (OOS)</button>
                     </div>
                 `;
+                verificarBloqueoDictamen();
             } catch (err) {
                 content.innerHTML = `<div class="p-8 text-rose-500 font-bold">Error: ${err.message}</div>`;
             }
         }
 
         async function guardarFila(lote, prueba, index) {
-            const valor = document.getElementById(`input-${index}`).value;
-            const btn = event.currentTarget;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            let valor = document.getElementById(`input-${index}`).value;
+            if (valor === 'Otro') {
+                const extra = document.getElementById(`extra-${index}`);
+                extra.classList.remove('hidden');
+                valor = extra.value;
+                if (!valor) return;
+            }
 
             try {
                 const res = await LIMS.guardarResultado(lote, prueba, valor, currentUser.usuario);
                 const badge = document.getElementById(`eval-${index}`);
+                const card = badge.closest('.bg-white');
+                
                 badge.textContent = res.evaluacion;
-                badge.className = `status-pill ${getEstatusClass(res.evaluacion)}`;
-                btn.innerHTML = '<i class="fas fa-check"></i>';
-                btn.classList.replace('bg-slate-800', 'bg-emerald-500');
-                setTimeout(() => {
-                    btn.innerHTML = '<i class="fas fa-save"></i>';
-                    btn.classList.replace('bg-emerald-500', 'bg-slate-800');
-                }, 2000);
+                badge.className = `status-pill text-[9px] ${getEstatusClass(res.evaluacion)}`;
+                
+                if (res.evaluacion === 'OOS') {
+                    card.classList.add('border-red-300', 'bg-red-50');
+                } else {
+                    card.classList.remove('border-red-300', 'bg-red-50');
+                    card.classList.add('border-slate-100');
+                }
+                verificarBloqueoDictamen();
             } catch (err) {
                 Swal.fire('Error', err.message, 'error');
-                btn.innerHTML = '<i class="fas fa-save"></i>';
+            }
+        }
+
+        function verificarBloqueoDictamen() {
+            const evals = Array.from(document.querySelectorAll('[id^="eval-"]')).map(e => e.textContent);
+            const hayOOS = evals.includes('OOS');
+            const btnAprobar = document.getElementById('btnAprobarLote');
+            if (btnAprobar) {
+                btnAprobar.disabled = hayOOS;
+                btnAprobar.className = hayOOS 
+                    ? "flex-1 bg-slate-300 text-slate-500 py-3 rounded-xl font-bold cursor-not-allowed text-[10px] uppercase tracking-widest"
+                    : "flex-1 bg-emerald-600 text-white py-3 rounded-xl font-bold shadow-lg hover:bg-emerald-700 transition-all text-[10px] uppercase tracking-widest";
             }
         }
 
