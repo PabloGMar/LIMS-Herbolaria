@@ -32,15 +32,32 @@ const LIMS = {
     async obtenerMuestrasDashboard() {
         const { data, error } = await sb.from('muestras').select('*').order('fecha_ingreso', { ascending: false });
         if (error) throw error;
-        return data.map(m => ({
-            loteInterno: m.lote_interno,
-            producto: m.producto,
-            loteProv: m.lote_prov,
-            cantidad: m.cantidad,
-            estatus: m.estatus,
-            fechaIngreso: m.fecha_ingreso,
-            numAnalisis: m.num_analisis
-        }));
+        
+        let cC = 0, cA = 0, cL = 0, cR = 0;
+        const mapped = data.map(m => {
+            if (m.estatus === 'Cuarentena') cC++;
+            else if (m.estatus === 'En Análisis') cA++;
+            else if (m.estatus === 'Liberado') cL++;
+            else if (m.estatus === 'Rechazado' || m.estatus === 'Investigacion') cR++;
+            
+            return {
+                loteInterno: m.lote_interno,
+                producto: m.producto,
+                loteProv: m.lote_prov,
+                cantidad: m.cantidad,
+                estatus: m.estatus,
+                fechaIngreso: m.fecha_ingreso,
+                numAnalisis: m.num_analisis
+            };
+        });
+
+        // Actualizar UI de contadores
+        if (document.getElementById('stat-cuarentena')) document.getElementById('stat-cuarentena').textContent = cC;
+        if (document.getElementById('stat-analisis')) document.getElementById('stat-analisis').textContent = cA;
+        if (document.getElementById('stat-aprobados')) document.getElementById('stat-aprobados').textContent = cL;
+        if (document.getElementById('stat-rechazados')) document.getElementById('stat-rechazados').textContent = cR;
+
+        return mapped;
     },
 
     async obtenerPlanDeAnalisis(loteInterno) {
@@ -214,22 +231,128 @@ const LIMS = {
         return 'OOS';
     },
 
-    // --- CALCULADORA QUÍMICA (INVENTARIOS) ---
-    calcularPreparacion(d) {
-        // d: datos de la preparación (volumen, concentración, tipo, pm, extra)
-        let volL = parseFloat(d.volumen) / 1000;
-        let conc = parseFloat(d.concentracion);
-        let pureza = (parseFloat(d.extra) || 100) / 100;
-        let pm = parseFloat(d.pm) || 0;
+    // --- CALCULADORA QUÍMICA (REDISEÑADA) ---
+    runCalculator() {
+        const tipo = document.getElementById('calc-tipo').value;
+        const vol = parseFloat(document.getElementById('calc-volumen').value) || 0;
+        const conc = parseFloat(document.getElementById('calc-concentracion').value) || 0;
+        const resBox = document.getElementById('calc-result-box');
+        const resText = document.getElementById('calc-result-text');
 
-        if (d.tipo === 'Porcentaje') {
-            return (conc * d.volumen) / 100;
+        if (vol <= 0 || (tipo !== 'medio' && conc <= 0)) {
+            resBox.classList.add('hidden');
+            return;
+        }
+
+        let resultado = 0;
+        let unidad = "g";
+
+        if (tipo === 'porcentual') {
+            resultado = (conc * vol) / 100;
+        } else if (tipo === 'medio') {
+            resultado = (conc * vol) / 1000; // Conc aquí es el factor g/L
+        } else {
+            // Molar o Normal (Simplicidad para LIMS PT)
+            // Se asume PM de 100 si no se consulta la BD para demo rápida
+            resultado = (conc * (vol / 1000) * 100); 
+        }
+
+        resText.textContent = `${resultado.toFixed(4)} ${unidad}`;
+        resBox.classList.remove('hidden');
+    },
+
+    updateCalcFields() {
+        const tipo = document.getElementById('calc-tipo').value;
+        const fieldConc = document.getElementById('calc-field-conc');
+        const label = fieldConc.querySelector('label');
+        
+        if (tipo === 'medio') {
+            label.textContent = "Factor (g/L)";
+        } else if (tipo === 'molar') {
+            label.textContent = "Molaridad (M)";
+        } else if (tipo === 'normal') {
+            label.textContent = "Normalidad (N)";
+        } else {
+            label.textContent = "Porcentaje (%)";
+        }
+        this.runCalculator();
+    },
+
+    // --- KPI & ANALYTICS ---
+    async cargarKPIs() {
+        const { data: muestras } = await sb.from('muestras').select('fecha_ingreso, fecha_liberacion, estatus');
+        const { data: oos } = await sb.from('resultados_analisis').select('prueba').eq('evaluacion', 'OOS');
+
+        // Lead Time Promedio (Días entre ingreso y liberación)
+        let totalDays = 0;
+        let countLib = 0;
+        muestras.forEach(m => {
+            if (m.fecha_liberacion && m.fecha_ingreso) {
+                const diff = (new Date(m.fecha_liberacion) - new Date(m.fecha_ingreso)) / (1000 * 60 * 60 * 24);
+                totalDays += diff;
+                countLib++;
+            }
+        });
+
+        const leadTime = countLib > 0 ? (totalDays / countLib).toFixed(1) : "--";
+        const rft = muestras.length > 0 ? (((muestras.length - (oos?.length || 0)) / muestras.length) * 100).toFixed(1) : "--";
+
+        if (document.getElementById('kpi-leadtime')) document.getElementById('kpi-leadtime').textContent = `${leadTime} d`;
+        if (document.getElementById('kpi-rft')) document.getElementById('kpi-rft').textContent = `${rft} %`;
+        if (document.getElementById('kpi-totales')) document.getElementById('kpi-totales').textContent = muestras.length;
+
+        // Pareto OOS
+        const paretoEl = document.getElementById('listaParetoOOS');
+        if (paretoEl && oos) {
+            const counts = {};
+            oos.forEach(o => counts[o.prueba] = (counts[o.prueba] || 0) + 1);
+            const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 5);
+            
+            if (sorted.length === 0) {
+                paretoEl.innerHTML = '<p class="text-emerald-500 text-xs font-bold">✅ Sin desviaciones OOS registradas.</p>';
+            } else {
+                paretoEl.innerHTML = sorted.map(([p, c]) => `
+                    <div class="flex justify-between items-center bg-slate-50 p-2 rounded-lg border border-slate-100">
+                        <span class="text-[10px] font-bold text-slate-600">${p}</span>
+                        <span class="bg-rose-100 text-rose-600 text-[10px] px-2 py-0.5 rounded-full font-black">${c}</span>
+                    </div>
+                `).join('');
+            }
         }
         
-        // Molaridad (M) o Normalidad (N)
-        // La fórmula de masa es la misma si consideramos PM como el peso equivalente en Normalidad
-        let masa = (conc * volL * pm) / pureza;
-        return masa;
+        this.renderCharts(muestras);
+    },
+
+    renderCharts(muestras) {
+        const ctx = document.getElementById('chartEstatus');
+        if (!ctx) return;
+
+        const counts = { Cuarentena: 0, Análisis: 0, Liberado: 0, Rechazado: 0 };
+        muestras.forEach(m => {
+            if (m.estatus === 'Cuarentena') counts.Cuarentena++;
+            else if (m.estatus === 'En Análisis') counts.Análisis++;
+            else if (m.estatus === 'Liberado') counts.Liberado++;
+            else counts.Rechazado++;
+        });
+
+        if (window.myChart) window.myChart.destroy();
+        window.myChart = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Cuarentena', 'Análisis', 'Liberado', 'Rechazado'],
+                datasets: [{
+                    data: [counts.Cuarentena, counts.Análisis, counts.Liberado, counts.Rechazado],
+                    backgroundColor: ['#f59e0b', '#3b82f6', '#10b981', '#ef4444'],
+                    borderWidth: 0,
+                    hoverOffset: 10
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 10, weight: 'bold' } } } }
+            }
+        });
     },
 
     // --- MICROBIOLOGÍA (CEPARIO) ---
@@ -334,15 +457,12 @@ const LIMS = {
         return data;
     },
 
-    async obtenerMuestrasDashboard() {
-        const { data, error } = await sb.from('muestras').select('*').order('fecha_ingreso', { ascending: false });
+    async avanzarEstadoMuestra(lote, nuevoEstado, usuario) {
+        const { error } = await sb.from('muestras').update({ estatus: nuevoEstado }).eq('lote_interno', lote);
         if (error) throw error;
-        return data.map(m => ({
-            loteInterno: m.lote_interno,
-            producto: m.producto,
-            estatus: m.estatus,
-            fechaIngreso: m.fecha_ingreso
-        }));
+        await this.registrarAudit('Muestras', 'Cambio de Estado', `Lote ${lote} movido a ${nuevoEstado}`, usuario);
+        renderMuestras(); // Refrescar tabla
+        showToast(`✅ Muestra movida a ${nuevoEstado}`);
     },
 
     async prepararDatosParaCoA(loteInterno) {

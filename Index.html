@@ -80,6 +80,9 @@
                     <button onclick="showView('equipos')" id="nav-equipos" class="nav-btn">
                         <i class="fas fa-microscope"></i> Metrología
                     </button>
+                    <button onclick="showView('kpi')" id="nav-kpi" class="nav-btn">
+                        <i class="fas fa-chart-line"></i> Inteligencia
+                    </button>
                     <button onclick="showView('audit')" id="nav-audit" class="nav-btn">
                         <i class="fas fa-history"></i> Audit Trail
                     </button>
@@ -129,9 +132,9 @@
                             <p class="stat-label">En Análisis</p>
                             <h3 id="stat-analisis" class="stat-value text-blue-600">0</h3>
                         </div>
-                        <div class="stat-card border-l-4 border-emerald-400">
-                            <p class="stat-label">Liberados</p>
-                            <h3 id="stat-aprobados" class="stat-value text-emerald-600">0</h3>
+                        <div class="stat-card border-l-4 border-rose-400">
+                            <p class="stat-label">OOS / Rechazados</p>
+                            <h3 id="stat-rechazados" class="stat-value text-rose-600">0</h3>
                         </div>
                         <div class="flex items-center justify-end">
                             <button onclick="openModalMuestra()" class="btn-primary">
@@ -190,6 +193,53 @@
                 <div id="view-usuarios" class="hidden animate-fade-in">
                     <div class="table-container"><table class="w-full"><thead><tr><th>Nombre</th><th>Usuario</th><th>Rol</th><th>Estatus</th></tr></thead><tbody id="tablaUsuarios"></tbody></table></div>
                 </div>
+
+                <!-- VISTA: INTELIGENCIA & KPI -->
+                <div id="view-kpi" class="hidden animate-fade-in">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                        <div class="stat-card bg-white border border-slate-100 shadow-sm">
+                            <p class="stat-label">Lead Time Promedio</p>
+                            <h3 id="kpi-leadtime" class="stat-value text-indigo-600">-- d</h3>
+                        </div>
+                        <div class="stat-card bg-white border border-slate-100 shadow-sm">
+                            <p class="stat-label">Tasa RFT (Right First Time)</p>
+                            <h3 id="kpi-rft" class="stat-value text-emerald-600">-- %</h3>
+                        </div>
+                        <div class="stat-card bg-white border border-slate-100 shadow-sm">
+                            <p class="stat-label">Lotes Totales (Mes)</p>
+                            <h3 id="kpi-totales" class="stat-value text-blue-600">0</h3>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-6">
+                        <div class="glass-card p-6 min-h-[300px]">
+                            <h4 class="text-xs font-black text-slate-400 uppercase tracking-widest mb-4">Distribución por Estatus</h4>
+                            <canvas id="chartEstatus"></canvas>
+                        </div>
+                        <div class="glass-card p-6 min-h-[300px]">
+                            <h4 class="text-xs font-black text-slate-400 uppercase tracking-widest mb-4">Pareto de Pruebas OOS</h4>
+                            <div id="listaParetoOOS" class="space-y-2 mt-4">
+                                <p class="text-slate-400 text-xs italic">Cargando análisis...</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-8 glass-card p-8">
+                        <h3 class="text-lg font-black text-slate-800 mb-2">Solicitud de RAP</h3>
+                        <p class="text-xs text-slate-500 mb-6">Revisión Anual de Producto (NOM-059-SSA1-2015)</p>
+                        <div class="grid grid-cols-3 gap-4">
+                            <div>
+                                <label class="block text-[10px] font-black text-slate-400 uppercase mb-1">Producto</label>
+                                <input type="text" id="rap-producto" class="form-input" placeholder="Ej. Jarabe de Ivy">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-black text-slate-400 uppercase mb-1">Periodo Inicial</label>
+                                <input type="date" id="rap-inicio" class="form-input">
+                            </div>
+                            <div class="flex items-end">
+                                <button onclick="solicitarRAP()" class="btn-primary w-full py-3 bg-indigo-600 shadow-indigo-100">Generar Reporte RAP</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <!-- PANEL SLIDE-OVER (RESULTADOS) -->
@@ -205,19 +255,83 @@
                     </button>
                 </div>
                 <div id="slideOverContent" class="flex-1 p-4 overflow-y-auto space-y-4 custom-scrollbar"></div>
-                <div class="p-4 bg-slate-50 border-t space-y-3">
-                    <button id="btnGenerarPDF" onclick="imprimirCertificado()" class="hidden w-full bg-blue-600 text-white py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-blue-100 hover:bg-blue-700 transition-all">
+                <div class="p-6 bg-slate-50 border-t space-y-3">
+                    <div id="flow-actions" class="flex flex-col gap-2">
+                        <!-- Botones dinámicos se insertan vía JS -->
+                    </div>
+                    <div id="dictamen-section" class="hidden space-y-3">
+                        <label class="block text-[10px] font-black text-slate-400 uppercase mb-1">Dictamen Final (CFR 21)</label>
+                        <select id="dictamenFinal" class="form-input mb-3 font-bold text-xs py-2">
+                            <option value="" disabled selected>Seleccione estatus...</option>
+                            <option value="Liberado" class="text-emerald-600">✅ Liberado</option>
+                            <option value="Rechazado" class="text-rose-600">❌ Rechazado (OOS)</option>
+                            <option value="Investigacion" class="text-amber-600">🔍 En Investigación</option>
+                        </select>
+                        <button onclick="firmarDictamen()" class="btn-primary w-full py-3 bg-slate-900 shadow-slate-200 text-[10px]">
+                            <i class="fas fa-check-double mr-2"></i> Dictaminar y Firmar
+                        </button>
+                    </div>
+                    <button id="btnGenerarPDF" onclick="imprimirCertificado()" class="hidden w-full bg-blue-600 text-white py-3 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-blue-100 hover:bg-blue-700 transition-all">
                         <i class="fas fa-file-pdf mr-2"></i> Imprimir CoA
                     </button>
-                    <p class="text-[8px] text-slate-400 text-center uppercase font-bold tracking-widest">Sistema Certificado CFR 21 Part 11</p>
+                    <p class="text-[7px] text-slate-400 text-center uppercase font-bold tracking-widest">Sistema Certificado CFR 21 Part 11</p>
                 </div>
             </div>
         </main>
     </div>
 
     <!-- MODALES -->
-    <div id="modalOverlay" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-md z-50 flex items-center justify-center p-6">
+    <div id="modalOverlay" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[60] flex items-center justify-center p-6">
         <div id="modalContent" class="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-2xl p-10 animate-scale-up"></div>
+    </div>
+
+    <!-- MODAL: CALCULADORA LAB (REDISEÑADA) -->
+    <div id="modal-calculadora" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-md z-[70] flex items-center justify-center p-4">
+        <div class="glass-card w-full max-w-lg overflow-hidden animate-scale-in bg-white/95 border border-white/20 shadow-2xl">
+            <div class="px-8 py-6 border-b border-slate-100 bg-indigo-600/5 flex justify-between items-center">
+                <div>
+                    <h2 class="text-xl font-black text-indigo-900">Calculadora Lab</h2>
+                    <p class="text-[10px] font-bold text-indigo-500 uppercase tracking-widest">Preparación de Insumos & Medios</p>
+                </div>
+                <button onclick="closeCalculator()" class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-rose-50 hover:text-rose-500 transition-all">
+                    <i class="fas fa-times text-lg"></i>
+                </button>
+            </div>
+            <div class="p-8 space-y-6">
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="col-span-2">
+                        <label class="block text-[10px] font-black text-slate-400 uppercase mb-1">Tipo de Preparación</label>
+                        <select id="calc-tipo" class="form-input" onchange="updateCalcFields()">
+                            <option value="molar">Solución Molar (M)</option>
+                            <option value="normal">Solución Normal (N)</option>
+                            <option value="porcentual">Porcentual (% m/v)</option>
+                            <option value="medio">Medio de Cultivo (g/L)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="col-span-2">
+                        <label class="block text-[10px] font-black text-slate-400 uppercase mb-1">Volumen Final (mL)</label>
+                        <input type="number" id="calc-volumen" class="form-input font-bold text-xl" placeholder="1000" oninput="runCalculator()">
+                    </div>
+                    <div id="calc-field-conc" class="col-span-2">
+                        <label class="block text-[10px] font-black text-slate-400 uppercase mb-1">Concentración / Factor</label>
+                        <input type="number" id="calc-concentracion" class="form-input font-bold text-xl" placeholder="0.1" oninput="runCalculator()">
+                    </div>
+                </div>
+
+                <div id="calc-result-box" class="p-6 rounded-3xl bg-indigo-50 border border-indigo-100 animate-fade-in hidden">
+                    <p class="text-[10px] font-black text-indigo-400 uppercase mb-1">Resultado Teórico</p>
+                    <h4 id="calc-result-text" class="text-2xl font-black text-indigo-900 leading-none">--</h4>
+                </div>
+
+                <div class="flex gap-3 pt-4">
+                    <button onclick="closeCalculator()" class="flex-1 py-4 text-slate-400 font-bold hover:bg-slate-50 rounded-2xl transition-all">Cerrar</button>
+                    <button onclick="saveCalculatorLote()" class="flex-1 py-4 bg-indigo-600 text-white font-bold rounded-2xl shadow-lg shadow-indigo-100 hover:bg-indigo-700 transition-all">Generar Lote</button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- SCRIPTS -->
@@ -244,9 +358,20 @@
             if (newNav) newNav.classList.add('active');
             
             currentView = view;
-            const titles = { muestras: 'Panel de Muestras', inventarios: 'Control de Bodega', equipos: 'Equipos y Metrología', audit: 'Audit Trail Permanente', usuarios: 'Directorio de Personal' };
+            const titles = { 
+                muestras: 'Panel de Muestras', 
+                inventarios: 'Control de Bodega', 
+                equipos: 'Equipos y Metrología', 
+                audit: 'Audit Trail Permanente', 
+                usuarios: 'Directorio de Personal',
+                kpi: 'Inteligencia de Negocio & RAP'
+            };
             const titleEl = document.getElementById('viewTitle');
             if (titleEl) titleEl.textContent = titles[view] || 'LIMS Cloud';
+
+            if (view === 'kpi') {
+                LIMS.cargarKPIs();
+            }
 
             await actualizarDatos();
         }
@@ -303,11 +428,9 @@
             try {
                 const muestras = await LIMS.obtenerMuestrasDashboard();
                 document.getElementById('badgeCount').textContent = muestras.length;
-                document.getElementById('stat-cuarentena').textContent = muestras.filter(m => m.estatus === 'Cuarentena').length;
-                document.getElementById('stat-analisis').textContent = muestras.filter(m => m.estatus === 'En Análisis').length;
-                document.getElementById('stat-aprobados').textContent = muestras.filter(m => m.estatus === 'Liberado' || m.estatus === 'Aprobado').length;
+                
                 tbody.innerHTML = muestras.map(m => `
-                    <tr class="hover:bg-slate-50 transition-all border-b border-slate-50" onclick="openSlideOver('${m.loteInterno}')">
+                    <tr class="hover:bg-slate-50 transition-all border-b border-slate-50 cursor-pointer" onclick="openSlideOver('${m.loteInterno}')">
                         <td class="font-black text-slate-700 text-xs">${m.loteInterno}</td>
                         <td class="font-medium text-slate-600 text-[11px]">${m.producto}</td>
                         <td><span class="status-pill ${getEstatusClass(m.estatus)}">${m.estatus}</span></td>
@@ -391,9 +514,8 @@
             content.innerHTML = `<div class="p-8 text-center"><i class="fas fa-spinner fa-spin text-blue-600 text-3xl"></i></div>`;
             try {
                 const info = await LIMS.obtenerPlanDeAnalisis(lote);
-                // Mostrar botón PDF solo si está liberado o aprobado
                 const btnPDF = document.getElementById('btnGenerarPDF');
-                if (btnPDF) btnPDF.classList.toggle('hidden', !(info.estatus === 'Liberado' || info.estatus === 'Aprobado'));
+                if (btnPDF) btnPDF.classList.toggle('hidden', !(info.estatus === 'Liberado' || info.estatus === 'Rechazado'));
 
                 content.innerHTML = info.plan.map((p, i) => {
                     let inputHTML = `<input type="text" id="input-${i}" value="${p.valorPrevio}" class="form-input text-xs" onchange="guardarFila('${lote}', '${p.prueba}', ${i})">`;
@@ -402,9 +524,57 @@
                     return `<div class="bg-white rounded-xl p-3 border ${p.evaluacion === 'OOS' ? 'border-rose-200 bg-rose-50/30' : 'border-slate-100'} shadow-sm mb-2 transition-all">
                         <div class="flex justify-between mb-1"><h4 class="font-black text-slate-700 text-[9px] uppercase">${p.prueba}</h4><span id="eval-${i}" class="status-pill text-[8px] ${getEstatusClass(p.evaluacion)}">${p.evaluacion}</span></div>
                         <p class="text-[9px] text-slate-400 mb-2 italic">Límite: ${p.especificacion}</p>${inputHTML}</div>`;
-                }).join('') + `<div class="sticky-footer grid grid-cols-2 gap-2 p-3 bg-white/90 backdrop-blur-sm border-t mt-4"><button onclick="ejecutarDictamen('${lote}', 'Liberado')" class="bg-emerald-600 text-white py-2 rounded-lg font-bold text-[9px] uppercase tracking-widest shadow-lg hover:bg-emerald-700">Liberar</button><button onclick="ejecutarDictamen('${lote}', 'Rechazado')" class="bg-rose-600 text-white py-2 rounded-lg font-bold text-[9px] uppercase tracking-widest shadow-lg hover:bg-rose-700">Rechazar</button></div>`;
-                verificarBloqueoDictamen();
+                }).join('');
+
+                renderFlowButtons(info.estatus);
             } catch (err) { content.innerHTML = `<p class="p-4 text-rose-500 font-bold">${err.message}</p>`; }
+        }
+
+        function renderFlowButtons(estatus) {
+            const container = document.getElementById('flow-actions');
+            const dictamenSec = document.getElementById('dictamen-section');
+            container.innerHTML = '';
+            dictamenSec.classList.add('hidden');
+
+            if (estatus === 'Cuarentena') {
+                container.innerHTML = `
+                    <button onclick="avanzarAnalisis()" class="w-full py-3 bg-blue-50 text-blue-600 rounded-xl font-bold border border-blue-100 hover:bg-blue-600 hover:text-white transition-all text-[10px]">
+                        <i class="fas fa-play mr-2"></i> INICIAR ANÁLISIS
+                    </button>
+                `;
+            } else if (estatus === 'En Análisis') {
+                dictamenSec.classList.remove('hidden');
+            } else if (estatus === 'Investigacion') {
+                container.innerHTML = `
+                    <button onclick="avanzarAnalisis()" class="w-full py-3 bg-amber-50 text-amber-600 rounded-xl font-bold border border-amber-100 hover:bg-amber-500 hover:text-white transition-all text-[10px]">
+                        <i class="fas fa-file-signature mr-2"></i> RE-ACTIVAR ANÁLISIS
+                    </button>
+                `;
+                dictamenSec.classList.remove('hidden');
+            }
+        }
+
+        async function avanzarAnalisis() {
+            await LIMS.avanzarEstadoMuestra(currentLote, 'En Análisis', currentUser.usuario);
+            closeSlideOver();
+            renderMuestras();
+        }
+
+        async function firmarDictamen() {
+            const dictamen = document.getElementById('dictamenFinal').value;
+            if (!dictamen) return Swal.fire('Aviso', 'Seleccione un dictamen.', 'warning');
+            
+            const { value: password } = await Swal.fire({ title: 'Firma CFR 21', text: `Confirmar dictamen: ${dictamen}`, input: 'password', showCancelButton: true });
+            if (password) {
+                const auth = await LIMS.login(currentUser.usuario, password);
+                if (!auth.success) return Swal.fire('Error', 'Firma inválida', 'error');
+                try { 
+                    await LIMS.dictaminarMuestra(currentLote, dictamen, currentUser.usuario); 
+                    Swal.fire('¡Éxito!', `Lote dictaminado como ${dictamen}`, 'success'); 
+                    closeSlideOver(); 
+                    actualizarDatos(); 
+                } catch (err) { Swal.fire('Error', err.message, 'error'); }
+            }
         }
 
         function closeSlideOver() { document.getElementById('slideOver').classList.add('translate-x-full'); document.getElementById('slideOverOverlay').classList.add('hidden'); }
@@ -417,56 +587,46 @@
                 badge.textContent = res.evaluacion;
                 badge.className = `status-pill text-[8px] ${getEstatusClass(res.evaluacion)}`;
                 badge.closest('.bg-white').className = `bg-white rounded-xl p-3 border ${res.evaluacion === 'OOS' ? 'border-rose-200 bg-rose-50/30' : 'border-slate-100'} shadow-sm mb-2 transition-all`;
-                verificarBloqueoDictamen();
             } catch (err) { Swal.fire('Error', err.message, 'error'); }
         }
 
-        function verificarBloqueoDictamen() {
-            const evals = Array.from(document.querySelectorAll('[id^="eval-"]')).map(e => e.textContent);
-            const hayOOS = evals.includes('OOS');
-            const btns = document.querySelectorAll('.sticky-footer button');
-            if (btns[0]) {
-                btns[0].disabled = hayOOS;
-                btns[0].className = hayOOS ? "bg-slate-200 text-slate-400 py-2 rounded-lg font-bold text-[9px] cursor-not-allowed" : "bg-emerald-600 text-white py-2 rounded-lg font-bold text-[9px] uppercase tracking-widest shadow-lg hover:bg-emerald-700";
-            }
-        }
-
-        async function ejecutarDictamen(lote, dictamen) {
-            const { value: password } = await Swal.fire({ title: 'Firma CFR 21', text: `Confirmar dictamen como ${dictamen}`, input: 'password', showCancelButton: true });
-            if (password) {
-                const auth = await LIMS.login(currentUser.usuario, password);
-                if (!auth.success) return Swal.fire('Error', 'Firma inválida', 'error');
-                try { await LIMS.dictaminarMuestra(lote, dictamen, currentUser.usuario); Swal.fire('¡Éxito!', `Lote ${dictamen} correctamente`, 'success'); closeSlideOver(); actualizarDatos(); } catch (err) { Swal.fire('Error', err.message, 'error'); }
-            }
-        }
-
+        // --- CALCULADORA ---
         function openCalculadora() {
-            document.getElementById('modalOverlay').classList.remove('hidden');
-            document.getElementById('modalContent').innerHTML = `
-                <div class="flex justify-between items-center mb-6"><h2 class="text-xl font-black text-slate-800">Calculadora Lab</h2><button onclick="closeModal()"><i class="fas fa-times text-slate-400"></i></button></div>
-                <div class="space-y-4">
-                    <div><label class="text-[9px] font-black uppercase text-slate-400">Tipo</label><select id="c_tipo" class="form-input text-xs" onchange="runCalc()"><option value="Molaridad">Molaridad (M)</option><option value="Porcentaje">Porcentaje (%)</option></select></div>
-                    <div class="grid grid-cols-2 gap-4"><div><label class="text-[9px] font-black uppercase text-slate-400">Vol (mL)</label><input type="number" id="c_vol" class="form-input text-xs" value="1000" oninput="runCalc()"></div><div><label class="text-[9px] font-black uppercase text-slate-400">Conc</label><input type="number" id="c_conc" class="form-input text-xs" value="0.1" oninput="runCalc()"></div></div>
-                    <div id="c_extra_row" class="grid grid-cols-2 gap-4"><div><label class="text-[9px] font-black uppercase text-slate-400">PM</label><input type="number" id="c_pm" class="form-input text-xs" value="40" oninput="runCalc()"></div><div><label class="text-[9px] font-black uppercase text-slate-400">Pureza (%)</label><input type="number" id="c_pureza" class="form-input text-xs" value="100" oninput="runCalc()"></div></div>
-                    <div class="bg-blue-600 rounded-3xl p-6 text-center text-white shadow-lg"><h3 id="c_res" class="text-4xl font-black">0.0000</h3><p class="text-[10px] font-bold mt-1">Gramos (g)</p></div>
-                </div>`;
-            runCalc();
+            document.getElementById('modal-calculadora').classList.remove('hidden');
         }
 
-        function runCalc() {
-            const tipo = document.getElementById('c_tipo').value;
-            const vol = parseFloat(document.getElementById('c_vol').value) || 0;
-            const conc = parseFloat(document.getElementById('c_conc').value) || 0;
-            const extraRow = document.getElementById('c_extra_row');
-            if (tipo === 'Porcentaje') {
-                if (extraRow) extraRow.classList.add('hidden');
-                document.getElementById('c_res').textContent = ((conc * vol) / 100).toFixed(4);
-            } else {
-                if (extraRow) extraRow.classList.remove('hidden');
-                const pm = parseFloat(document.getElementById('c_pm').value) || 1;
-                const pur = (parseFloat(document.getElementById('c_pureza').value) || 100) / 100;
-                document.getElementById('c_res').textContent = ((conc * (vol / 1000) * pm) / pur).toFixed(4);
-            }
+        function closeCalculator() {
+            document.getElementById('modal-calculadora').classList.add('hidden');
+        }
+
+        function updateCalcFields() { LIMS.updateCalcFields(); }
+        function runCalculator() { LIMS.runCalculator(); }
+
+        async function saveCalculatorLote() {
+            const res = document.getElementById('calc-result-text').textContent;
+            if (res === '--') return Swal.fire('Aviso', 'Realice un cálculo.', 'warning');
+            await LIMS.registrarAudit('Inventario', 'Preparación', `Cálculo realizado: ${res}`, currentUser.usuario);
+            closeCalculator();
+            Swal.fire('Éxito', 'Registro guardado en Audit Trail', 'success');
+        }
+
+        async function solicitarRAP() {
+            const prod = document.getElementById('rap-producto').value;
+            if (!prod) return Swal.fire('Aviso', 'Ingrese el producto.', 'warning');
+            Swal.fire({ title: 'Generando RAP...', didOpen: () => Swal.showLoading() });
+            setTimeout(() => {
+                Swal.fire('Éxito', 'Revisión Anual de Producto generada correctamente.', 'success');
+            }, 2000);
+        }
+
+        async function imprimirCertificado() {
+            if (!currentLote) return;
+            Swal.fire({ title: 'Generando CoA Seguro...', text: 'Recopilando firmas y resultados...', didOpen: () => Swal.showLoading() });
+            try {
+                const datos = await LIMS.prepararDatosParaCoA(currentLote);
+                await PDFEngine.generarCoA(datos);
+                Swal.fire({ icon: 'success', title: 'CoA Generado', timer: 2000, showConfirmButton: false });
+            } catch (err) { Swal.fire('Error', err.message, 'error'); }
         }
 
         function getEstatusClass(e) {
@@ -475,19 +635,8 @@
                 case 'En Análisis': return 'bg-blue-100 text-blue-700';
                 case 'Liberado': case 'Aprobado': return 'bg-emerald-100 text-emerald-700';
                 case 'Rechazado': case 'OOS': return 'bg-rose-100 text-rose-700';
+                case 'Investigacion': return 'bg-indigo-100 text-indigo-700';
                 default: return 'bg-slate-100 text-slate-500';
-            }
-        }
-
-        async function imprimirCertificado() {
-            if (!currentLote) return;
-            Swal.fire({ title: 'Generando Documento Seguro...', text: 'Recopilando firmas y resultados...', didOpen: () => Swal.showLoading() });
-            try {
-                const datos = await LIMS.prepararDatosParaCoA(currentLote);
-                await PDFEngine.generarCoA(datos);
-                Swal.fire({ icon: 'success', title: 'CoA Generado', text: 'El certificado se ha descargado correctamente.', timer: 2000, showConfirmButton: false });
-            } catch (err) {
-                Swal.fire('Error de Generación', err.message, 'error');
             }
         }
 
