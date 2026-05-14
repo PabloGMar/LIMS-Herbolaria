@@ -180,10 +180,20 @@
                 </div>
 
                 <div id="view-inventarios" class="hidden animate-fade-in">
-                    <div class="flex gap-8 mb-8 border-b border-slate-100 pb-2">
-                        <button onclick="changeSubTab('stock')" class="tab-btn active" id="tab-stock">Reactivos</button>
-                        <button onclick="changeSubTab('prep')" class="tab-btn" id="tab-prep">Preparaciones</button>
-                        <button onclick="changeSubTab('cepas')" class="tab-btn" id="tab-cepas">Cepario ATCC</button>
+                    <div class="flex justify-between items-center mb-8 border-b border-slate-100 pb-2">
+                        <div class="flex gap-8">
+                            <button onclick="changeSubTab('stock')" class="tab-btn active" id="tab-stock">Reactivos</button>
+                            <button onclick="changeSubTab('prep')" class="tab-btn" id="tab-prep">Preparaciones</button>
+                            <button onclick="changeSubTab('cepas')" class="tab-btn" id="tab-cepas">Cepario ATCC</button>
+                        </div>
+                        <div class="flex gap-2">
+                            <button onclick="openModalInsumo()" class="btn-primary py-2 px-4 text-[10px]">
+                                <i class="fas fa-box-open mr-2"></i> Recepción Insumo
+                            </button>
+                            <button onclick="openCalculadora()" class="btn-primary py-2 px-4 text-[10px] bg-indigo-600">
+                                <i class="fas fa-flask mr-2"></i> Preparar Solución
+                            </button>
+                        </div>
                     </div>
                     <div id="sub-view-stock" class="table-container animate-fade-in">
                         <table class="w-full">
@@ -206,6 +216,11 @@
                 </div>
 
                 <div id="view-equipos" class="hidden animate-fade-in">
+                    <div class="flex justify-end mb-4">
+                        <button onclick="openModalEquipo()" class="btn-primary py-2 px-4 text-[10px]">
+                            <i class="fas fa-microscope mr-2"></i> Alta de Equipo
+                        </button>
+                    </div>
                     <div class="table-container"><table class="w-full"><thead><tr><th>Equipo</th><th>Código</th><th>Próxima Calib.</th><th>Estatus</th></tr></thead><tbody id="tablaEquipos"></tbody></table></div>
                 </div>
                 <div id="view-audit" class="hidden animate-fade-in">
@@ -380,12 +395,36 @@
 
                 <div class="grid grid-cols-2 gap-4">
                     <div class="col-span-2">
-                        <label class="block text-[10px] font-black text-slate-400 uppercase mb-1">Volumen Final (mL)</label>
-                        <input type="number" id="calc-volumen" class="form-input font-bold text-xl" placeholder="1000" oninput="runCalculator()">
+                        <label class="block text-[10px] font-black text-slate-400 uppercase mb-1">Reactivo Base</label>
+                        <input type="text" id="calc-reactivo" list="listaReactivosCalc" class="form-input" placeholder="Buscar reactivo...">
+                        <datalist id="listaReactivosCalc"></datalist>
                     </div>
-                    <div id="calc-field-conc" class="col-span-2">
+                    <div>
+                        <label class="block text-[10px] font-black text-slate-400 uppercase mb-1">Volumen Final (mL)</label>
+                        <input type="number" id="calc-volumen" class="form-input font-bold text-lg" placeholder="1000" oninput="runCalculator()">
+                    </div>
+                    <div id="calc-field-conc">
                         <label class="block text-[10px] font-black text-slate-400 uppercase mb-1">Concentración / Factor</label>
-                        <input type="number" id="calc-concentracion" class="form-input font-bold text-xl" placeholder="0.1" oninput="runCalculator()">
+                        <input type="number" id="calc-concentracion" class="form-input font-bold text-lg" placeholder="0.1" oninput="runCalculator()">
+                    </div>
+                    <div class="col-span-2">
+                        <label class="block text-[10px] font-black text-slate-400 uppercase mb-1">Caducidad Interna</label>
+                        <input type="date" id="calc-caducidad" class="form-input font-bold text-sm">
+                    </div>
+                    <!-- Campos específicos para Medios -->
+                    <div id="calc-extra-medio" class="col-span-2 grid grid-cols-2 gap-3 hidden">
+                        <div>
+                            <label class="block text-[10px] font-black text-slate-400 uppercase mb-1">pH Inicial</label>
+                            <input type="text" id="calc-ph-inicial" class="form-input text-xs" placeholder="7.0">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-black text-slate-400 uppercase mb-1">pH Final</label>
+                            <input type="text" id="calc-ph-final" class="form-input text-xs" placeholder="7.2">
+                        </div>
+                    </div>
+                    <div class="col-span-2">
+                        <label class="block text-[10px] font-black text-slate-400 uppercase mb-1">Cantidad Real (Pesada/Medida)</label>
+                        <input type="text" id="calc-cantidad-real" class="form-input font-bold text-lg text-blue-600 bg-blue-50/30" placeholder="0.0000">
                     </div>
                 </div>
 
@@ -397,6 +436,103 @@
                 <div class="flex gap-3 pt-4">
                     <button onclick="closeCalculator()" class="flex-1 py-4 text-slate-400 font-bold hover:bg-slate-50 rounded-2xl transition-all">Cerrar</button>
                     <button onclick="saveCalculatorLote()" class="flex-1 py-4 bg-indigo-600 text-white font-bold rounded-2xl shadow-lg shadow-indigo-100 hover:bg-indigo-700 transition-all">Generar Lote</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: NUEVO INSUMO -->
+    <div id="modal-insumo" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-md z-[70] flex items-center justify-center p-4">
+        <div class="glass-card w-full max-w-lg overflow-hidden animate-scale-in bg-white/95 border border-white/20 shadow-2xl">
+            <div class="px-8 py-6 border-b border-slate-100 bg-emerald-600/5 flex justify-between items-center">
+                <div>
+                    <h2 class="text-xl font-black text-emerald-900">Recepción de Insumo</h2>
+                    <p class="text-[10px] font-bold text-emerald-500 uppercase tracking-widest">Ingreso a Bodega</p>
+                </div>
+                <button onclick="closeModalInsumo()" class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-rose-50 hover:text-rose-500 transition-all">
+                    <i class="fas fa-times text-lg"></i>
+                </button>
+            </div>
+            <div class="p-8 space-y-4">
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="col-span-2">
+                        <label class="block text-[10px] font-black text-slate-400 uppercase mb-1">Nombre del Insumo</label>
+                        <input type="text" id="ins-nombre" class="form-input text-sm font-bold" placeholder="Ej. Ácido Sulfúrico">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-black text-slate-400 uppercase mb-1">Categoría</label>
+                        <select id="ins-categoria" class="form-select text-sm font-bold">
+                            <option value="Reactivos">Reactivos</option>
+                            <option value="Solventes">Solventes</option>
+                            <option value="Estándares">Estándares</option>
+                            <option value="Medios de Cultivo">Medios de Cultivo</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-black text-slate-400 uppercase mb-1">Proveedor</label>
+                        <input type="text" id="ins-proveedor" class="form-input text-sm" placeholder="Ej. Merck">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-black text-slate-400 uppercase mb-1">Lote del Proveedor</label>
+                        <input type="text" id="ins-lote-prov" class="form-input text-sm font-mono text-indigo-600" placeholder="Lote externo">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-black text-slate-400 uppercase mb-1">Presentación</label>
+                        <input type="text" id="ins-presentacion" class="form-input text-sm" placeholder="Ej. 1 L">
+                    </div>
+                    <div class="col-span-2">
+                        <label class="block text-[10px] font-black text-slate-400 uppercase mb-1">Caducidad de Fabricante</label>
+                        <input type="date" id="ins-caducidad" class="form-input text-sm font-bold">
+                    </div>
+                </div>
+                <div class="flex gap-3 pt-4">
+                    <button onclick="saveInsumo()" class="flex-1 py-4 bg-emerald-600 text-white font-bold rounded-2xl shadow-lg shadow-emerald-100 hover:bg-emerald-700 transition-all">Ingresar a Stock</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: NUEVO EQUIPO -->
+    <div id="modal-equipo" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-md z-[70] flex items-center justify-center p-4">
+        <div class="glass-card w-full max-w-lg overflow-hidden animate-scale-in bg-white/95 border border-white/20 shadow-2xl">
+            <div class="px-8 py-6 border-b border-slate-100 bg-sky-600/5 flex justify-between items-center">
+                <div>
+                    <h2 class="text-xl font-black text-sky-900">Alta de Equipo</h2>
+                    <p class="text-[10px] font-bold text-sky-500 uppercase tracking-widest">Metrología y Calibración</p>
+                </div>
+                <button onclick="closeModalEquipo()" class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-rose-50 hover:text-rose-500 transition-all">
+                    <i class="fas fa-times text-lg"></i>
+                </button>
+            </div>
+            <div class="p-8 space-y-4">
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="col-span-2">
+                        <label class="block text-[10px] font-black text-slate-400 uppercase mb-1">Nombre del Equipo</label>
+                        <input type="text" id="eq-nombre" class="form-input text-sm font-bold" placeholder="Ej. Balanza Analítica">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-black text-slate-400 uppercase mb-1">Código Interno</label>
+                        <input type="text" id="eq-codigo" class="form-input text-sm font-mono text-indigo-600 uppercase" placeholder="Ej. BA-01">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-black text-slate-400 uppercase mb-1">Ubicación</label>
+                        <input type="text" id="eq-ubicacion" class="form-input text-sm" placeholder="Ej. Área FQ">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-black text-slate-400 uppercase mb-1">Proveedor / Marca</label>
+                        <input type="text" id="eq-proveedor" class="form-input text-sm" placeholder="Ej. Mettler Toledo">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-black text-slate-400 uppercase mb-1">Frecuencia (Meses)</label>
+                        <input type="number" id="eq-frecuencia" class="form-input text-sm" value="12">
+                    </div>
+                    <div class="col-span-2">
+                        <label class="block text-[10px] font-black text-slate-400 uppercase mb-1">Última Calibración</label>
+                        <input type="date" id="eq-ultima" class="form-input text-sm font-bold">
+                    </div>
+                </div>
+                <div class="flex gap-3 pt-4">
+                    <button onclick="saveEquipo()" class="flex-1 py-4 bg-sky-600 text-white font-bold rounded-2xl shadow-lg shadow-sky-100 hover:bg-sky-700 transition-all">Registrar Equipo</button>
                 </div>
             </div>
         </div>
@@ -832,23 +968,147 @@
         }
 
         // --- CALCULADORA ---
-        function openCalculadora() {
+        async function openCalculadora() {
             document.getElementById('modal-calculadora').classList.remove('hidden');
+            // Cargar reactivos para el datalist
+            try {
+                const inv = await LIMS.obtenerInventarios();
+                window.currentStock = inv.stock;
+                const list = document.getElementById('listaReactivosCalc');
+                list.innerHTML = '';
+                inv.stock.forEach(r => {
+                    const opt = document.createElement('option');
+                    opt.value = `${r.nombre} [Lote: ${r.lote_prov}]`;
+                    list.appendChild(opt);
+                });
+            } catch (err) { console.error("Error cargando reactivos:", err); }
         }
 
         function closeCalculator() {
             document.getElementById('modal-calculadora').classList.add('hidden');
         }
 
-        function updateCalcFields() { LIMS.updateCalcFields(); }
+        function updateCalcFields() { 
+            const tipo = document.getElementById('calc-tipo').value;
+            const extraMedio = document.getElementById('calc-extra-medio');
+            if (tipo === 'medio') {
+                extraMedio.classList.remove('hidden');
+            } else {
+                extraMedio.classList.add('hidden');
+            }
+            LIMS.updateCalcFields(); 
+        }
         function runCalculator() { LIMS.runCalculator(); }
 
         async function saveCalculatorLote() {
             const res = document.getElementById('calc-result-text').textContent;
-            if (res === '--') return Swal.fire('Aviso', 'Realice un cálculo.', 'warning');
-            await LIMS.registrarAudit('Inventario', 'Preparación', `Cálculo realizado: ${res}`, currentUser.usuario);
-            closeCalculator();
-            Swal.fire('Éxito', 'Registro guardado en Audit Trail', 'success');
+            const reactivo = document.getElementById('calc-reactivo').value;
+            const caducidad = document.getElementById('calc-caducidad').value;
+            const tipo = document.getElementById('calc-tipo').value;
+            const volumen = document.getElementById('calc-volumen').value;
+            const concentracion = document.getElementById('calc-concentracion').value;
+            const cantReal = document.getElementById('calc-cantidad-real').value;
+            
+            // Campos extra
+            const phInicial = document.getElementById('calc-ph-inicial').value;
+            const phFinal = document.getElementById('calc-ph-final').value;
+
+            if (res === '--' || !reactivo || !caducidad || !cantReal) {
+                return Swal.fire('Faltan Datos', 'Complete el reactivo, caducidad, cálculo y cantidad real pesada.', 'warning');
+            }
+
+            // Buscar el ID base del reactivo seleccionado para la nomenclatura
+            let idInsumoBase = 'PRP';
+            if (window.currentStock) {
+                const found = window.currentStock.find(r => `${r.nombre} [Lote: ${r.lote_prov}]` === reactivo);
+                if (found) {
+                    idInsumoBase = found.id_insumo || found.id || found.codigo || 'PRP';
+                }
+            }
+
+            Swal.fire({ title: 'Generando Lote...', didOpen: () => Swal.showLoading() });
+            
+            try {
+                const lote = await LIMS.guardarNuevaPreparacion({
+                    tipo: tipo,
+                    reactivo: reactivo,
+                    idInsumoBase: idInsumoBase,
+                    volumen: volumen,
+                    concentracion: concentracion,
+                    caducidad: caducidad,
+                    cantReal: cantReal,
+                    volTeorico: res.split(' ')[0],
+                    phInicial: phInicial,
+                    phFinal: phFinal
+                }, currentUser.usuario);
+
+                Swal.fire('¡Éxito!', `Lote de preparación generado: ${lote}`, 'success');
+                closeCalculator();
+                actualizarDatos(); // Refrescar inventario
+            } catch (err) {
+                Swal.fire('Error', err.message, 'error');
+            }
+        }
+
+        // --- INSUMOS Y EQUIPOS ---
+        function openModalInsumo() {
+            document.getElementById('modal-insumo').classList.remove('hidden');
+        }
+        function closeModalInsumo() {
+            document.getElementById('modal-insumo').classList.add('hidden');
+        }
+        async function saveInsumo() {
+            const nombre = document.getElementById('ins-nombre').value;
+            const categoria = document.getElementById('ins-categoria').value;
+            const proveedor = document.getElementById('ins-proveedor').value;
+            const loteProv = document.getElementById('ins-lote-prov').value;
+            const presentacion = document.getElementById('ins-presentacion').value;
+            const caducidad = document.getElementById('ins-caducidad').value;
+
+            if (!nombre || !proveedor || !loteProv || !caducidad) {
+                return Swal.fire('Faltan Datos', 'Complete los campos obligatorios.', 'warning');
+            }
+
+            Swal.fire({ title: 'Registrando Insumo...', didOpen: () => Swal.showLoading() });
+            try {
+                const id = await LIMS.registrarNuevoInsumo({
+                    nombre, categoria, proveedor, loteProv, presentacion, caducidad
+                }, currentUser.usuario);
+                Swal.fire('¡Éxito!', `Insumo registrado en Cuarentena con ID: ${id}`, 'success');
+                closeModalInsumo();
+                document.getElementById('ins-nombre').value = '';
+                document.getElementById('ins-lote-prov').value = '';
+                actualizarDatos();
+            } catch (err) { Swal.fire('Error', err.message, 'error'); }
+        }
+
+        function openModalEquipo() {
+            document.getElementById('modal-equipo').classList.remove('hidden');
+        }
+        function closeModalEquipo() {
+            document.getElementById('modal-equipo').classList.add('hidden');
+        }
+        async function saveEquipo() {
+            const nombre = document.getElementById('eq-nombre').value;
+            const codigo = document.getElementById('eq-codigo').value;
+            const ubicacion = document.getElementById('eq-ubicacion').value;
+            const proveedor = document.getElementById('eq-proveedor').value;
+            const frecuencia = document.getElementById('eq-frecuencia').value;
+            const ultima = document.getElementById('eq-ultima').value;
+
+            if (!nombre || !codigo || !ultima) {
+                return Swal.fire('Faltan Datos', 'El nombre, código y última calibración son obligatorios.', 'warning');
+            }
+
+            Swal.fire({ title: 'Registrando Equipo...', didOpen: () => Swal.showLoading() });
+            try {
+                await LIMS.registrarNuevoEquipo({
+                    equipo: nombre, codigo, ubicacion, proveedor, frecuencia, ultima
+                }, currentUser.usuario);
+                Swal.fire('¡Éxito!', `Equipo ${codigo} registrado al programa de calibración.`, 'success');
+                closeModalEquipo();
+                actualizarDatos();
+            } catch (err) { Swal.fire('Error', err.message, 'error'); }
         }
 
 

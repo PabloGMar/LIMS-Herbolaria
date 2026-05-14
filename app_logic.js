@@ -272,15 +272,52 @@ const LIMS = {
         if (tipo === 'porcentual') {
             resultado = (conc * vol) / 100;
         } else if (tipo === 'medio') {
-            resultado = (conc * vol) / 1000; // Conc aquí es el factor g/L
-        } else {
-            // Molar o Normal (Simplicidad para LIMS PT)
-            // Se asume PM de 100 si no se consulta la BD para demo rápida
-            resultado = (conc * (vol / 1000) * 100); 
+            resultado = (conc * vol) / 1000; 
+        } else if (tipo === 'molar') {
+            // Ejemplo: PM Promedio de reactivos comunes = 100 g/mol
+            // En producción real esto vendría del inventario
+            resultado = conc * (vol / 1000) * 100; 
+        } else if (tipo === 'normal') {
+            // Asumiendo equivalente de 1 para demo
+            resultado = conc * (vol / 1000) * 100;
         }
 
         resText.textContent = `${resultado.toFixed(4)} ${unidad}`;
         resBox.classList.remove('hidden');
+    },
+
+    async guardarNuevaPreparacion(d, usuario) {
+        // Nomenclatura Legacy: ID_Insumo-DDMMYY-X (Soluciones) o MED-DDMMYY-X (Medios)
+        const hoy = new Date();
+        const fechaCod = hoy.toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit', year: '2-digit' }).replace(/\//g, '');
+        const prefijo = d.tipo === 'medio' ? 'MED' : (d.idInsumoBase || 'PRP');
+        const baseLote = `${prefijo}-${fechaCod}`;
+        
+        // Simular contador (en producción real esto se consultaría en la BD)
+        const loteFinal = `${baseLote}-${Math.floor(Math.random() * 900) + 100}`;
+        
+        // Receta detallada (Legacy D)
+        const recetaTexto = `${d.reactivo} -> Teórico: ${d.volTeorico} g | Real: ${d.cantReal} g ${d.tipo === 'medio' ? '| pH Final: ' + d.phFinal : ''}`;
+
+        const payload = {
+            lote: loteFinal,
+            tipo: d.tipo,
+            vol_final: `${d.volumen} mL`,
+            receta: recetaTexto,
+            concentracion: d.concentracion || "N/A",
+            fecha_preparacion: hoy.toISOString(),
+            caducidad: d.caducidad,
+            ph_inicial: d.phInicial || null,
+            ph_final: d.phFinal || null,
+            estatus: 'Liberado',
+            usuario: usuario
+        };
+
+        const { error } = await sb.from('inv_preparacion').insert([payload]);
+        if (error) throw error;
+
+        await this.registrarAudit('Inventario', 'Preparación', `Nueva preparación: ${loteFinal} | Real: ${d.cantReal}g`, usuario);
+        return loteFinal;
     },
 
     updateCalcFields() {
@@ -524,6 +561,58 @@ const LIMS = {
             ultima_cal: fecha, 
             proxima_cal: proxima.toISOString() 
         }).eq('codigo', cod);
+    },
+
+    async registrarNuevoEquipo(d, usuario) {
+        let frecuencia = parseInt(d.frecuencia) || 12;
+        let ultima = new Date(d.ultima);
+        let proxima = new Date(ultima);
+        proxima.setMonth(proxima.getMonth() + frecuencia);
+
+        const payload = {
+            codigo: d.codigo.trim().toUpperCase(),
+            equipo: d.equipo.trim(),
+            ubicacion: d.ubicacion.trim().toUpperCase(),
+            proveedor: d.proveedor.trim(),
+            proxima_cal: proxima.toISOString(),
+            ultima_intervencion: ultima.toISOString()
+        };
+
+        const { error } = await sb.from('equipos_calibracion').insert([payload]);
+        if (error) throw error;
+
+        await this.registrarAudit('Equipos', 'Alta de Equipo', `Registrado: ${payload.equipo} (${payload.codigo})`, usuario);
+    },
+
+    // --- INSUMOS (STOCK) ---
+    async registrarNuevoInsumo(d, usuario) {
+        let prefijo = "R";
+        if (d.categoria === "Solventes") prefijo = "S";
+        else if (d.categoria === "Estándares") prefijo = "SRP";
+
+        const hoy = new Date();
+        const fechaCod = hoy.toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit', year: '2-digit' }).replace(/\//g, '');
+        const baseID = `${prefijo}-${fechaCod}`;
+        const idFinal = `${baseID}/${Math.floor(Math.random() * 90) + 10}`;
+
+        const payload = {
+            id_insumo: idFinal,
+            categoria: d.categoria,
+            nombre: d.nombre,
+            proveedor: d.proveedor,
+            lote_prov: d.loteProv,
+            presentacion: d.presentacion,
+            fecha_recepcion: hoy.toISOString(),
+            fecha_apertura: null,
+            caducidad: d.caducidad,
+            estatus: 'Cuarentena'
+        };
+
+        const { error } = await sb.from('inv_recepcion').insert([payload]);
+        if (error) throw error;
+
+        await this.registrarAudit('Inventario', 'Recepción Insumo', `Nuevo ingreso: ${idFinal} (${d.nombre})`, usuario);
+        return idFinal;
     },
 
     // --- AUDITORÍA ---
