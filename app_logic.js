@@ -30,17 +30,95 @@ const LIMS = {
 
     // --- MUESTRAS ---
     async obtenerMuestrasDashboard() {
-        const { data, error } = await sb.from('muestras')
-            .select('*')
-            .order('fecha_ingreso', { ascending: false });
-        
-        return (data || []).map(m => ({
+        const { data, error } = await sb.from('muestras').select('*').order('fecha_ingreso', { ascending: false });
+        if (error) throw error;
+        return data.map(m => ({
             loteInterno: m.lote_interno,
             producto: m.producto,
+            loteProv: m.lote_prov,
+            cantidad: m.cantidad,
             estatus: m.estatus,
             fechaIngreso: m.fecha_ingreso,
-            tipoAnalisis: m.tipo_analisis
+            numAnalisis: m.num_analisis
         }));
+    },
+
+    async obtenerPlanDeAnalisis(loteInterno) {
+        // 1. Obtener datos de la muestra
+        const { data: muestra, error: e1 } = await sb.from('muestras')
+            .select('producto, estatus')
+            .eq('lote_interno', loteInterno)
+            .single();
+        
+        if (e1) throw e1;
+
+        // 2. Obtener especificaciones del producto
+        const { data: specs, error: e2 } = await sb.from('productos_pt')
+            .select('*')
+            .eq('producto', muestra.producto)
+            .order('id', { ascending: true });
+        
+        if (e2) throw e2;
+
+        // 3. Obtener resultados ya guardados
+        const { data: resultados, error: e3 } = await sb.from('resultados_analisis')
+            .select('*')
+            .eq('lote_interno', loteInterno);
+
+        const mapaResultados = {};
+        if (resultados) {
+            resultados.forEach(r => {
+                mapaResultados[r.prueba] = r;
+            });
+        }
+
+        return {
+            producto: muestra.producto,
+            estatus: muestra.estatus,
+            plan: specs.map(s => ({
+                prueba: s.prueba,
+                especificacion: s.especificacion,
+                valorPrevio: mapaResultados[s.prueba]?.resultado || '',
+                evaluacion: mapaResultados[s.prueba]?.evaluacion || 'En Proceso'
+            }))
+        };
+    },
+
+    async guardarResultado(loteInterno, prueba, valor, usuario) {
+        // Obtener especificación para evaluar
+        const { data: spec } = await sb.from('productos_pt')
+            .select('especificacion')
+            .eq('prueba', prueba)
+            .limit(1)
+            .single();
+
+        const evaluacion = this.evaluarResultado(valor, spec.especificacion);
+
+        const payload = {
+            lote_interno: loteInterno,
+            prueba: prueba,
+            resultado: valor,
+            evaluacion: evaluacion,
+            analista: usuario,
+            fecha_analisis: new Date().toISOString()
+        };
+
+        const { error } = await sb.from('resultados_analisis').upsert(payload, { onConflict: 'lote_interno, prueba' });
+        if (error) throw error;
+
+        await this.registrarAudit('Resultados', 'Captura', `Lote: ${loteInterno} | Prueba: ${prueba} | Val: ${valor}`, usuario);
+        
+        return { evaluacion };
+    },
+
+    async dictaminarMuestra(loteInterno, dictamen, usuario) {
+        const { error } = await sb.from('muestras')
+            .update({ estatus: dictamen })
+            .eq('lote_interno', loteInterno);
+        
+        if (error) throw error;
+
+        await this.registrarAudit('Muestras', 'Dictamen', `Lote: ${loteInterno} -> ${dictamen}`, usuario);
     },
 
     async ingresarMuestra(d, usuario) {
