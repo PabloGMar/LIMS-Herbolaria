@@ -200,17 +200,17 @@
 
             <!-- PANEL SLIDE-OVER (CAPTURA DE RESULTADOS) -->
             <div id="slideOverOverlay" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-40" onclick="closeSlideOver()"></div>
-            <div id="slideOver" class="fixed inset-y-0 right-0 w-full max-w-[400px] bg-white/95 backdrop-blur-xl shadow-[-20px_0_50px_rgba(0,0,0,0.1)] z-50 translate-x-full transition-transform duration-500 ease-out flex flex-col border-l border-white/20">
-                <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+            <div id="slideOver" class="fixed inset-y-0 right-0 w-full max-w-[320px] bg-white/95 backdrop-blur-xl shadow-[-20px_0_50px_rgba(0,0,0,0.15)] z-50 translate-x-full transition-transform duration-500 ease-out flex flex-col border-l border-white/20">
+                <div class="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
                     <div>
-                        <h2 class="text-xl font-black text-slate-800 tracking-tight">Captura de Resultados</h2>
-                        <p id="slideOverLote" class="text-blue-600 font-extrabold text-[10px] uppercase tracking-wider">Lote: --</p>
+                        <h2 class="text-lg font-black text-slate-800 tracking-tight">Resultados</h2>
+                        <p id="slideOverLote" class="text-blue-600 font-extrabold text-[9px] uppercase tracking-wider">Lote: --</p>
                     </div>
-                    <button onclick="closeSlideOver()" class="w-10 h-10 flex items-center justify-center rounded-xl bg-white shadow-sm text-slate-400 hover:text-rose-500 hover:shadow-md transition-all duration-300 group">
-                        <i class="fas fa-times text-lg group-hover:rotate-90 transition-transform duration-300"></i>
+                    <button onclick="closeSlideOver()" class="w-8 h-8 flex items-center justify-center rounded-lg bg-white shadow-sm text-slate-400 hover:text-rose-500 hover:shadow-md transition-all duration-300 group">
+                        <i class="fas fa-times text-base group-hover:rotate-90 transition-transform duration-300"></i>
                     </button>
                 </div>
-                <div id="slideOverContent" class="flex-1 p-6 overflow-y-auto space-y-5 custom-scrollbar">
+                <div id="slideOverContent" class="flex-1 p-4 overflow-y-auto space-y-4 custom-scrollbar">
                     <!-- Dinámico -->
                 </div>
                 <div class="sticky-footer bg-slate-50">
@@ -238,17 +238,62 @@
         let currentSubTab = 'stock';
 
         // GESTIÓN DE VISTAS
-        function showView(view) {
+        async function showView(view) {
+            // Ocultar anterior
             document.getElementById('view-' + currentView).classList.add('hidden');
-            document.getElementById('nav-' + currentView).classList.remove('active');
+            const oldNav = document.getElementById('nav-' + currentView);
+            if (oldNav) oldNav.classList.remove('active');
             
+            // Mostrar nueva
             document.getElementById('view-' + view).classList.remove('hidden');
-            document.getElementById('nav-' + view).classList.add('active');
+            const newNav = document.getElementById('nav-' + view);
+            if (newNav) newNav.classList.add('active');
             
             currentView = view;
-            const titles = { muestras: 'Panel de Muestras', inventarios: 'Control de Bodega', equipos: 'Equipos y Metrología', audit: 'Audit Trail Permanente', usuarios: 'Directorio de Personal' };
+            const titles = { 
+                muestras: 'Panel de Muestras', 
+                inventarios: 'Control de Bodega', 
+                equipos: 'Equipos y Metrología', 
+                audit: 'Audit Trail Permanente', 
+                usuarios: 'Directorio de Personal' 
+            };
             document.getElementById('viewTitle').textContent = titles[view];
-            actualizarDatos();
+
+            // Carga de Datos según vista
+            if (view === 'muestras') actualizarDatos();
+            if (view === 'inventarios') cargarInventarios();
+            if (view === 'equipos') cargarEquipos();
+            if (view === 'audit') cargarAudit();
+            if (view === 'usuarios') cargarUsuarios();
+        }
+
+        async function actualizarDatos() {
+            const table = document.getElementById('tablaMuestras');
+            table.innerHTML = `<tr><td colspan="5" class="p-8 text-center"><i class="fas fa-spinner fa-spin text-blue-600"></i></td></tr>`;
+            
+            try {
+                const muestras = await LIMS.obtenerMuestrasDashboard();
+                document.getElementById('badgeCount').textContent = muestras.length;
+                
+                // Actualizar Stats
+                document.getElementById('stat-cuarentena').textContent = muestras.filter(m => m.estatus === 'Cuarentena').length;
+                document.getElementById('stat-analisis').textContent = muestras.filter(m => m.estatus === 'En Análisis').length;
+                document.getElementById('stat-aprobados').textContent = muestras.filter(m => m.estatus === 'Liberado').length;
+
+                table.innerHTML = muestras.map(m => `
+                    <tr class="hover:bg-slate-50 transition-all cursor-pointer border-b border-slate-50" onclick="openSlideOver('${m.loteInterno}')">
+                        <td class="font-black text-slate-700">${m.loteInterno}</td>
+                        <td class="font-medium text-slate-600">${m.producto}</td>
+                        <td><span class="status-pill ${getEstatusClass(m.estatus)}">${m.estatus}</span></td>
+                        <td class="text-xs text-slate-400 font-mono">${new Date(m.fechaIngreso).toLocaleDateString()}</td>
+                        <td class="text-right">
+                            <button class="w-8 h-8 rounded-full hover:bg-blue-50 text-blue-600 transition-all"><i class="fas fa-chevron-right"></i></button>
+                        </td>
+                    </tr>
+                `).join('');
+            } catch (err) {
+                table.innerHTML = `<tr><td colspan="5" class="p-8 text-center text-rose-500 font-bold">Error: ${err.message}</td></tr>`;
+            }
         }
 
         function changeSubTab(tab) {
@@ -464,12 +509,12 @@
                 const info = await LIMS.obtenerPlanDeAnalisis(lote);
                 
                 content.innerHTML = `
-                    <div class="mb-5 border-b border-slate-100 pb-4">
-                        <div class="flex items-center gap-1.5 mb-1.5">
-                            <div class="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
-                            <span class="text-[9px] font-black text-slate-400 uppercase tracking-[0.15em]">Lote: ${lote}</span>
+                    <div class="mb-4 border-b border-slate-100 pb-3">
+                        <div class="flex items-center gap-1.5 mb-1">
+                            <div class="w-1.5 h-1.5 bg-blue-500 rounded-full animate-pulse"></div>
+                            <span class="text-[8px] font-black text-slate-400 uppercase tracking-[0.12em]">Análisis de Lote</span>
                         </div>
-                        <h2 class="text-base font-black text-slate-800 leading-tight tracking-tight">${info.producto}</h2>
+                        <h2 class="text-sm font-black text-slate-800 leading-tight tracking-tight">${info.producto}</h2>
                     </div>
 
                     <div class="space-y-2 mb-20" id="contenedorPruebas">
@@ -522,10 +567,10 @@
                         }).join('')}
                     </div>
 
-                    <div class="sticky-footer grid grid-cols-2 gap-3 bg-white/80 backdrop-blur-md p-6 border-t border-slate-100">
-                        <button onclick="guardarTodoElAvance('${lote}')" class="col-span-2 bg-slate-900 text-white py-3 rounded-xl font-bold text-[10px] uppercase tracking-[0.15em] hover:bg-slate-800 transition-all shadow-lg shadow-slate-200"><i class="fas fa-signature mr-2 text-blue-400"></i> Firmar Avance (FQ/MB)</button>
-                        <button id="btnAprobarLote" onclick="ejecutarDictamen('${lote}', 'Liberado')" class="bg-emerald-600 text-white py-3 rounded-xl font-bold shadow-lg shadow-emerald-100 hover:bg-emerald-700 transition-all text-[10px] uppercase tracking-widest">Liberar Lote</button>
-                        <button onclick="ejecutarDictamen('${lote}', 'Rechazado')" class="bg-rose-600 text-white py-3 rounded-xl font-bold shadow-lg shadow-rose-100 hover:bg-rose-700 transition-all text-[10px] uppercase tracking-widest">Rechazar</button>
+                    <div class="sticky-footer grid grid-cols-2 gap-2 bg-white/80 backdrop-blur-md p-4 border-t border-slate-100">
+                        <button onclick="guardarTodoElAvance('${lote}')" class="col-span-2 bg-slate-900 text-white py-2.5 rounded-lg font-bold text-[9px] uppercase tracking-[0.12em] hover:bg-slate-800 transition-all shadow-lg shadow-slate-200"><i class="fas fa-signature mr-2 text-blue-400"></i> Firmar Avance</button>
+                        <button id="btnAprobarLote" onclick="ejecutarDictamen('${lote}', 'Liberado')" class="bg-emerald-600 text-white py-2.5 rounded-lg font-bold shadow-lg shadow-emerald-100 hover:bg-emerald-700 transition-all text-[9px] uppercase tracking-widest">Liberar</button>
+                        <button onclick="ejecutarDictamen('${lote}', 'Rechazado')" class="bg-rose-600 text-white py-2.5 rounded-lg font-bold shadow-lg shadow-rose-100 hover:bg-rose-700 transition-all text-[9px] uppercase tracking-widest">Rechazar</button>
                     </div>
                 `;
                 verificarBloqueoDictamen();
@@ -604,8 +649,8 @@
             if (btnAprobar) {
                 btnAprobar.disabled = hayOOS;
                 btnAprobar.className = hayOOS 
-                    ? "bg-slate-200 text-slate-400 py-3 rounded-xl font-bold cursor-not-allowed text-[10px] uppercase tracking-widest transition-all"
-                    : "bg-emerald-600 text-white py-3 rounded-xl font-bold shadow-lg shadow-emerald-100 hover:bg-emerald-700 transition-all text-[10px] uppercase tracking-widest";
+                    ? "bg-slate-200 text-slate-400 py-2.5 rounded-lg font-bold cursor-not-allowed text-[9px] uppercase tracking-widest transition-all"
+                    : "bg-emerald-600 text-white py-2.5 rounded-lg font-bold shadow-lg shadow-emerald-100 hover:bg-emerald-700 transition-all text-[9px] uppercase tracking-widest";
             }
         }
 
@@ -718,17 +763,276 @@
             document.getElementById('slideOverOverlay').classList.add('hidden');
         }
 
-        function getEstatusClass(estatus) {
-            switch(estatus) {
-                case 'Cuarentena': return 'bg-amber-100 text-amber-700';
-                case 'En Análisis': return 'bg-blue-100 text-blue-700';
-                case 'Liberado': return 'bg-emerald-100 text-emerald-700';
-                case 'Rechazado': return 'bg-red-100 text-red-700';
-                default: return 'bg-slate-100 text-slate-500';
+            const titleEl = document.getElementById('viewTitle');
+            if (titleEl) titleEl.textContent = titles[view];
+
+            actualizarDatos();
+        }
+
+        async function actualizarDatos() {
+            if (!currentUser) return;
+            
+            if (currentView === 'muestras') await renderMuestras();
+            if (currentView === 'inventarios') await cargarInventarios();
+            if (currentView === 'equipos') await renderEquipos();
+            if (currentView === 'audit') await renderAudit();
+            if (currentView === 'usuarios') await renderUsuarios();
+            
+            cargarAlertas(); 
+        }
+
+        // --- LOGIN Y SESIÓN ---
+        async function handleLogin(e) {
+            e.preventDefault();
+            const u = document.getElementById('usuario').value;
+            const p = document.getElementById('password').value;
+            
+            Swal.fire({ title: 'Iniciando Sesión...', didOpen: () => Swal.showLoading() });
+            
+            try {
+                const res = await LIMS.login(u, p);
+                if (res.success) {
+                    currentUser = res.user;
+                    document.getElementById('loginSection').classList.add('hidden');
+                    document.getElementById('appSection').classList.remove('hidden');
+                    document.getElementById('userName').textContent = currentUser.nombre;
+                    document.getElementById('userRole').textContent = currentUser.rol;
+                    document.getElementById('userInitial').textContent = currentUser.nombre.charAt(0);
+                    Swal.close();
+                    showView('muestras');
+                } else {
+                    Swal.fire('Acceso Denegado', res.message, 'error');
+                }
+            } catch (err) {
+                Swal.fire('Error de Conexión', err.message, 'error');
             }
         }
 
         function cerrarSesion() { location.reload(); }
+
+        // --- RENDERIZADORES ESPECÍFICOS ---
+        async function renderMuestras() {
+            const tbody = document.getElementById('tablaMuestras');
+            tbody.innerHTML = `<tr><td colspan="5" class="p-8 text-center"><i class="fas fa-spinner fa-spin text-blue-600"></i></td></tr>`;
+            
+            try {
+                const muestras = await LIMS.obtenerMuestrasDashboard();
+                document.getElementById('badgeCount').textContent = muestras.length;
+                document.getElementById('stat-cuarentena').textContent = muestras.filter(m => m.estatus === 'Cuarentena').length;
+                document.getElementById('stat-analisis').textContent = muestras.filter(m => m.estatus === 'En Análisis').length;
+                document.getElementById('stat-aprobados').textContent = muestras.filter(m => m.estatus === 'Liberado' || m.estatus === 'Aprobado').length;
+
+                tbody.innerHTML = muestras.map(m => `
+                    <tr class="hover:bg-slate-50 transition-all cursor-pointer border-b border-slate-50" onclick="openSlideOver('${m.loteInterno}')">
+                        <td class="font-black text-slate-700">${m.loteInterno}</td>
+                        <td class="font-medium text-slate-600 text-xs">${m.producto}</td>
+                        <td><span class="status-pill ${getEstatusClass(m.estatus)}">${m.estatus}</span></td>
+                        <td class="text-[10px] text-slate-400 font-mono">${new Date(m.fechaIngreso).toLocaleDateString()}</td>
+                        <td class="text-right"><button class="w-8 h-8 rounded-full hover:bg-blue-50 text-blue-600 transition-all"><i class="fas fa-chevron-right"></i></button></td>
+                    </tr>
+                `).join('');
+            } catch (err) { console.error(err); }
+        }
+
+        async function cargarInventarios() {
+            try {
+                const data = await LIMS.obtenerInventarios();
+                document.getElementById('tablaStock').innerHTML = data.stock.map(i => `
+                    <tr><td class="py-4 font-bold text-slate-700 text-xs">${i.nombre}</td><td class="py-4 font-mono text-[10px] text-blue-600">${i.lote_prov}</td><td class="py-4 text-[10px] text-slate-500">${new Date(i.caducidad).toLocaleDateString()}</td><td class="py-4"><span class="status-pill ${getEstatusClass(i.estatus)}">${i.estatus}</span></td></tr>
+                `).join('');
+                document.getElementById('tablaPrep').innerHTML = data.preparaciones.map(p => `
+                    <tr><td class="py-4 font-black text-indigo-600 text-[10px]">${p.lote}</td><td class="py-4 text-[10px] font-bold">${p.tipo}</td><td class="py-4 text-[10px] text-slate-500">${new Date(p.fecha_preparacion).toLocaleDateString()}</td><td class="py-4"><span class="status-pill ${getEstatusClass(p.estatus)}">${p.estatus}</span></td></tr>
+                `).join('');
+                document.getElementById('tablaCepas').innerHTML = data.cepas.map(c => `
+                    <tr><td class="py-4 font-bold italic text-slate-700 text-xs">${c.microorganismo}</td><td class="py-4 font-mono text-[10px] text-indigo-500">${c.id_tubo}</td><td class="py-4 text-center font-black text-blue-600 text-xs">${c.pases}</td><td class="py-4"><span class="status-pill bg-emerald-50 text-emerald-700 border-emerald-100">${c.estatus}</span></td></tr>
+                `).join('');
+            } catch (err) { console.error(err); }
+        }
+
+        function changeSubTab(tab) {
+            document.getElementById('sub-view-' + currentSubTab).classList.add('hidden');
+            document.getElementById('tab-' + currentSubTab).classList.remove('active');
+            document.getElementById('sub-view-' + tab).classList.remove('hidden');
+            document.getElementById('tab-' + tab).classList.add('active');
+            currentSubTab = tab;
+        }
+
+        async function renderAudit() {
+            try {
+                const data = await LIMS.obtenerAuditTrailBD();
+                document.getElementById('tablaAudit').innerHTML = data.map(i => {
+                    const colorAccion = i.accion.includes('Error') || i.accion.includes('Fallido') ? 'text-rose-600' : (i.accion.includes('Firma') || i.accion.includes('Dictamen') ? 'text-blue-600' : 'text-slate-800');
+                    return `<tr class="hover:bg-slate-50/50 transition-colors border-b border-slate-50"><td class="px-4 py-3 text-[10px] font-mono text-slate-400">${new Date(i.fecha).toLocaleString()}</td><td class="px-4 py-3 text-xs font-bold text-slate-600">${i.usuario}</td><td class="px-4 py-3 text-xs font-black ${colorAccion}">${i.accion}</td><td class="px-4 py-3 text-[11px] text-slate-500 font-medium">${i.detalle}</td></tr>`;
+                }).join('');
+            } catch (err) { console.error(err); }
+        }
+
+        async function renderEquipos() {
+            try {
+                const data = await LIMS.obtenerEquiposBD();
+                document.getElementById('tablaEquipos').innerHTML = data.map(e => {
+                    const dias = Math.ceil((new Date(e.proxima) - new Date()) / (1000 * 60 * 60 * 24));
+                    const colorStatus = dias < 0 ? 'bg-rose-50 text-rose-700 border-rose-100' : (dias <= 30 ? 'bg-amber-50 text-amber-700 border-amber-100' : 'bg-emerald-50 text-emerald-700 border-emerald-100');
+                    return `<tr class="hover:bg-slate-50/50 transition-colors border-b border-slate-50"><td class="px-4 py-4 font-bold text-slate-700 text-xs">${e.equipo}</td><td class="px-4 py-4 font-black text-blue-600 text-[10px]">${e.codigo}</td><td class="px-4 py-4 font-bold text-[10px] text-slate-500">${new Date(e.proxima).toLocaleDateString()}</td><td><span class="status-pill ${colorStatus}">${dias < 0 ? 'Vencido' : (dias <= 30 ? 'Por Vencer' : 'Vigente')}</span></td></tr>`;
+                }).join('');
+            } catch (err) { console.error(err); }
+        }
+
+        async function renderUsuarios() {
+            try {
+                const data = await LIMS.obtenerUsuarios();
+                document.getElementById('tablaUsuarios').innerHTML = data.map(u => `
+                    <tr class="border-b border-slate-50"><td class="py-4 font-bold text-slate-700 text-xs">${u.nombre}</td><td class="py-4 text-[10px] text-slate-500">${u.usuario}</td><td class="py-4 text-[10px] font-black uppercase text-blue-600">${u.rol}</td><td><span class="status-pill ${u.estatus === 'Activo' ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'}">${u.estatus}</span></td></tr>
+                `).join('');
+            } catch (err) { console.error(err); }
+        }
+
+        async function cargarAlertas() {
+            const container = document.getElementById('listaAlertas');
+            if (!container) return;
+            try {
+                const alertas = await LIMS.obtenerAlertasCaducidad();
+                if (alertas.length === 0) {
+                    container.innerHTML = `<div class="p-4 text-center bg-emerald-50 rounded-2xl border border-emerald-100"><p class="text-[9px] font-black text-emerald-700 uppercase">Todo Vigente</p></div>`;
+                    return;
+                }
+                container.innerHTML = alertas.map(a => `
+                    <div class="p-3 rounded-2xl border ${a.diasRestantes < 0 ? 'border-rose-200 bg-rose-50' : 'border-amber-200 bg-amber-50'} mb-2">
+                        <div class="flex justify-between mb-1"><span class="text-[8px] font-black ${a.diasRestantes < 0 ? 'text-rose-600' : 'text-amber-600'} uppercase">${a.categoria}</span><span class="text-[8px] font-black text-slate-400">${a.diasRestantes < 0 ? 'VENCIDO' : a.diasRestantes + ' DÍAS'}</span></div>
+                        <p class="text-[10px] font-bold text-slate-800 leading-tight">${a.nombre}</p>
+                    </div>
+                `).join('');
+            } catch (err) { console.error(err); }
+        }
+
+        // --- GESTIÓN DE MUESTRAS ---
+        function openModalMuestra() {
+            document.getElementById('modalOverlay').classList.remove('hidden');
+            document.getElementById('modalContent').innerHTML = `
+                <div class="flex justify-between items-center mb-8">
+                    <h2 class="text-2xl font-black text-slate-800 tracking-tight">Nueva Muestra</h2>
+                    <button onclick="closeModal()" class="text-slate-400 hover:text-red-500"><i class="fas fa-times text-xl"></i></button>
+                </div>
+                <form onsubmit="handleRegistroMuestra(event)" class="grid grid-cols-2 gap-4">
+                    <div class="col-span-2">
+                        <label class="block text-[10px] font-black text-slate-400 uppercase mb-2 tracking-widest">Producto</label>
+                        <input type="text" id="m_producto" required class="form-input" placeholder="Ej: Ácido Cítrico">
+                    </div>
+                    <div><label class="block text-[10px] font-black text-slate-400 uppercase mb-2 tracking-widest">Lote Interno</label><input type="text" id="m_lote" required class="form-input"></div>
+                    <div><label class="block text-[10px] font-black text-slate-400 uppercase mb-2 tracking-widest">Lote Prov</label><input type="text" id="m_prov" class="form-input"></div>
+                    <div class="col-span-2 mt-4"><button type="submit" class="btn-primary w-full py-4 text-sm">Registrar en Cuarentena</button></div>
+                </form>
+            `;
+        }
+
+        async function handleRegistroMuestra(e) {
+            e.preventDefault();
+            const data = { producto: document.getElementById('m_producto').value, loteInterno: document.getElementById('m_lote').value, loteProv: document.getElementById('m_prov').value, cantidad: 'N/A', numAnalisis: '000/24' };
+            try {
+                await LIMS.ingresarMuestra(data, currentUser.usuario);
+                closeModal();
+                Swal.fire('¡Éxito!', 'Muestra registrada.', 'success');
+                actualizarDatos();
+            } catch (err) { Swal.fire('Error', err.message, 'error'); }
+        }
+
+        function closeModal() { document.getElementById('modalOverlay').classList.add('hidden'); }
+
+        // --- CAPTURA DE RESULTADOS ---
+        let currentLote = null;
+        async function openSlideOver(lote) {
+            currentLote = lote;
+            document.getElementById('slideOver').classList.remove('translate-x-full');
+            document.getElementById('slideOverOverlay').classList.remove('hidden');
+            document.getElementById('slideOverLote').textContent = `Lote: ${lote}`;
+            const content = document.getElementById('slideOverContent');
+            content.innerHTML = `<div class="p-8 text-center"><i class="fas fa-spinner fa-spin text-blue-600"></i></div>`;
+            try {
+                const info = await LIMS.obtenerPlanDeAnalisis(lote);
+                content.innerHTML = info.plan.map((p, i) => {
+                    let inputHTML = `<input type="text" id="input-${i}" value="${p.valorPrevio}" class="form-input text-xs" onchange="guardarFila('${lote}', '${p.prueba}', ${i})">`;
+                    if (p.tipoUI === 'cualitativa') inputHTML = `<select id="input-${i}" class="form-input text-xs" onchange="guardarFila('${lote}', '${p.prueba}', ${i})"><option value="">Seleccione...</option><option value="${p.especificacion}" ${p.valorPrevio === p.especificacion ? 'selected' : ''}>${p.especificacion}</option><option value="Otro" ${p.valorPrevio && p.valorPrevio !== p.especificacion ? 'selected' : ''}>Otro</option></select>`;
+                    if (p.tipoUI === 'compleja') inputHTML = `<select id="input-${i}" class="form-input text-xs" onchange="guardarFila('${lote}', '${p.prueba}', ${i})"><option value="">Seleccione...</option><option value="Cumple con la prueba" ${p.valorPrevio === 'Cumple con la prueba' ? 'selected' : ''}>Cumple</option><option value="No cumple" ${p.valorPrevio === 'No cumple' ? 'selected' : ''}>No cumple</option></select>`;
+                    return `<div class="bg-white rounded-xl p-4 border ${p.evaluacion === 'OOS' ? 'border-rose-200 bg-rose-50/30' : 'border-slate-100'} shadow-sm">
+                        <div class="flex justify-between mb-2"><h4 class="font-black text-slate-700 text-[10px] uppercase">${p.prueba}</h4><span id="eval-${i}" class="status-pill text-[9px] ${getEstatusClass(p.evaluacion)}">${p.evaluacion}</span></div>
+                        <p class="text-[9px] text-slate-400 mb-2 font-medium">Límite: ${p.especificacion}</p>
+                        ${inputHTML}
+                    </div>`;
+                }).join('') + `<div class="sticky-footer grid grid-cols-2 gap-2 p-2"><button onclick="ejecutarDictamen('${lote}', 'Liberado')" class="bg-emerald-600 text-white py-2 rounded-lg font-bold text-[9px] uppercase tracking-widest shadow-lg shadow-emerald-100">Liberar</button><button onclick="ejecutarDictamen('${lote}', 'Rechazado')" class="bg-rose-600 text-white py-2 rounded-lg font-bold text-[9px] uppercase tracking-widest shadow-lg shadow-rose-100">Rechazar</button></div>`;
+            } catch (err) { content.innerHTML = `<p class="p-4 text-rose-500 font-bold">${err.message}</p>`; }
+        }
+
+        function closeSlideOver() { document.getElementById('slideOver').classList.add('translate-x-full'); document.getElementById('slideOverOverlay').classList.add('hidden'); }
+
+        async function guardarFila(lote, prueba, index) {
+            const val = document.getElementById(`input-${index}`).value;
+            try {
+                const res = await LIMS.guardarResultado(lote, prueba, val, currentUser.usuario);
+                const badge = document.getElementById(`eval-${index}`);
+                badge.textContent = res.evaluacion;
+                badge.className = `status-pill text-[9px] ${getEstatusClass(res.evaluacion)}`;
+                badge.closest('.bg-white').className = `bg-white rounded-xl p-4 border ${res.evaluacion === 'OOS' ? 'border-rose-200 bg-rose-50/30' : 'border-slate-100'} shadow-sm`;
+            } catch (err) { Swal.fire('Error', err.message, 'error'); }
+        }
+
+        async function ejecutarDictamen(lote, dictamen) {
+            const { value: password } = await Swal.fire({ title: 'Firma de Dictamen', text: `Lote ${lote} -> ${dictamen}`, input: 'password', inputLabel: 'Contraseña CFR 21', showCancelButton: true });
+            if (password) {
+                const auth = await LIMS.login(currentUser.usuario, password);
+                if (!auth.success) return Swal.fire('Error', 'Firma inválida', 'error');
+                try {
+                    await LIMS.dictaminarMuestra(lote, dictamen, currentUser.usuario);
+                    Swal.fire('Éxito', `Lote ${dictamen}`, 'success');
+                    closeSlideOver(); actualizarDatos();
+                } catch (err) { Swal.fire('Error', err.message, 'error'); }
+            }
+        }
+
+        // --- CALCULADORA ---
+        function openCalculadora() {
+            document.getElementById('modalOverlay').classList.remove('hidden');
+            document.getElementById('modalContent').innerHTML = `
+                <div class="flex justify-between items-center mb-6"><h2 class="text-xl font-black text-slate-800">Calculadora de Reactivos</h2><button onclick="closeModal()"><i class="fas fa-times"></i></button></div>
+                <div class="space-y-4">
+                    <div><label class="text-[10px] font-black uppercase text-slate-400">Tipo</label><select id="c_tipo" class="form-input" onchange="runCalc()"><option value="Molaridad">Molaridad (M)</option><option value="Porcentaje">Porcentaje (%)</option></select></div>
+                    <div class="grid grid-cols-2 gap-4"><div><label class="text-[10px] font-black uppercase text-slate-400">Vol (mL)</label><input type="number" id="c_vol" class="form-input" value="1000" oninput="runCalc()"></div><div><label class="text-[10px] font-black uppercase text-slate-400">Conc</label><input type="number" id="c_conc" class="form-input" value="0.1" oninput="runCalc()"></div></div>
+                    <div class="grid grid-cols-2 gap-4" id="c_extra_row"><div><label class="text-[10px] font-black uppercase text-slate-400">PM</label><input type="number" id="c_pm" class="form-input" value="40" oninput="runCalc()"></div><div><label class="text-[10px] font-black uppercase text-slate-400">Pureza (%)</label><input type="number" id="c_pureza" class="form-input" value="100" oninput="runCalc()"></div></div>
+                    <div class="bg-blue-600 rounded-2xl p-6 text-center text-white shadow-lg"><p class="text-[9px] font-black uppercase opacity-70">Resultado</p><h3 id="c_res" class="text-4xl font-black">0.0000</h3><p class="text-[10px] font-bold mt-1">Gramos (g)</p></div>
+                </div>
+            `;
+            runCalc();
+        }
+
+        function runCalc() {
+            const tipo = document.getElementById('c_tipo').value;
+            const vol = parseFloat(document.getElementById('c_vol').value) || 0;
+            const conc = parseFloat(document.getElementById('c_conc').value) || 0;
+            const extraRow = document.getElementById('c_extra_row');
+            if (tipo === 'Porcentaje') {
+                extraRow.classList.add('hidden');
+                document.getElementById('c_res').textContent = ((conc * vol) / 100).toFixed(4);
+            } else {
+                extraRow.classList.remove('hidden');
+                const pm = parseFloat(document.getElementById('c_pm').value) || 1;
+                const pur = (parseFloat(document.getElementById('c_pureza').value) || 100) / 100;
+                document.getElementById('c_res').textContent = ((conc * (vol / 1000) * pm) / pur).toFixed(4);
+            }
+        }
+
+        // --- HELPERS ---
+        function getEstatusClass(e) {
+            switch(e) {
+                case 'Cuarentena': return 'bg-amber-100 text-amber-700';
+                case 'En Análisis': return 'bg-blue-100 text-blue-700';
+                case 'Liberado': case 'Aprobado': return 'bg-emerald-100 text-emerald-700';
+                case 'Rechazado': case 'OOS': return 'bg-rose-100 text-rose-700';
+                default: return 'bg-slate-100 text-slate-500';
+            }
+        }
+
+        // --- INIT ---
+        setInterval(cargarAlertas, 300000);
+        cargarAlertas();
     </script>
 </body>
 </html>

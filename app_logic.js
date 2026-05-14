@@ -290,6 +290,59 @@ const LIMS = {
     async obtenerUsuarios() {
         const { data } = await sb.from('usuarios').select('id, nombre, rol, usuario, area, estatus');
         return data || [];
+    },
+
+    async obtenerEquiposBD() {
+        const { data, error } = await sb.from('equipos_calibracion').select('*').order('codigo', { ascending: true });
+        if (error) throw error;
+        return data.map(e => ({
+            codigo: e.codigo,
+            equipo: e.equipo,
+            ubicacion: e.ubicacion,
+            proxima: e.proxima_cal,
+            ultima: e.ultima_intervencion
+        }));
+    },
+
+    async obtenerAuditTrailBD() {
+        const { data, error } = await sb.from('audit_trail').select('*').order('fecha', { ascending: false }).limit(500);
+        if (error) throw error;
+        return data;
+    },
+
+    async obtenerAlertasCaducidad() {
+        const hoy = new Date().toISOString();
+        const treintaDias = new Date();
+        treintaDias.setDate(treintaDias.getDate() + 30);
+        
+        const { data: stock } = await sb.from('inv_recepcion').select('nombre, lote_prov, caducidad, categoria').lte('caducidad', treintaDias.toISOString()).neq('estatus', 'Agotado');
+        const { data: prep } = await sb.from('inv_preparacion').select('lote, caducidad, tipo').lte('caducidad', treintaDias.toISOString()).neq('estatus', 'Agotado');
+
+        const alertas = [];
+        if (stock) stock.forEach(s => alertas.push({ nombre: s.nombre, lote: s.lote_prov, caducidad: s.caducidad, categoria: s.categoria }));
+        if (prep) prep.forEach(p => alertas.push({ nombre: p.tipo, lote: p.lote, caducidad: p.caducidad, categoria: 'Preparación' }));
+
+        return alertas.map(a => {
+            const diff = Math.ceil((new Date(a.caducidad) - new Date()) / (1000 * 60 * 60 * 24));
+            return { ...a, diasRestantes: diff };
+        });
+    },
+
+    async obtenerUsuarios() {
+        const { data, error } = await sb.from('usuarios').select('*').order('nombre');
+        if (error) throw error;
+        return data;
+    },
+
+    async obtenerMuestrasDashboard() {
+        const { data, error } = await sb.from('muestras').select('*').order('fecha_ingreso', { ascending: false });
+        if (error) throw error;
+        return data.map(m => ({
+            loteInterno: m.lote_interno,
+            producto: m.producto,
+            estatus: m.estatus,
+            fechaIngreso: m.fecha_ingreso
+        }));
     }
 };
 
