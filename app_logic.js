@@ -337,12 +337,63 @@ const LIMS = {
     async obtenerMuestrasDashboard() {
         const { data, error } = await sb.from('muestras').select('*').order('fecha_ingreso', { ascending: false });
         if (error) throw error;
-        return data.map(m => ({
-            loteInterno: m.lote_interno,
-            producto: m.producto,
-            estatus: m.estatus,
-            fechaIngreso: m.fecha_ingreso
         }));
+    },
+
+    async prepararDatosParaCoA(loteInterno) {
+        // 1. Datos de muestra
+        const { data: m, error: e1 } = await sb.from('muestras').select('*').eq('lote_interno', loteInterno).single();
+        if (e1) throw e1;
+
+        // 2. Resultados y Firmas
+        const { data: resultados, error: e2 } = await sb.from('resultados_analisis').select('*').eq('lote_interno', loteInterno);
+        if (e2) throw e2;
+
+        // 3. Usuarios Activos para traducir nombres/roles
+        const { data: usuarios } = await sb.from('usuarios').select('*').eq('estatus', 'Activo');
+        const traductor = {};
+        let jefeQA = "Pendiente";
+        let respSanitario = "Pendiente";
+
+        if (usuarios) {
+            usuarios.forEach(u => {
+                traductor[u.usuario] = u.nombre;
+                if (u.rol === 'Jefe de Control de Calidad') jefeQA = u.nombre;
+                if (u.rol === 'Responsable Sanitario') respSanitario = u.nombre;
+            });
+        }
+
+        // Clasificación de analistas por especialidad (FQ / MB)
+        const palabrasMB = ['MESOFILO', 'HONGO', 'LEVADURA', 'COLI', 'SALMONELLA', 'AUREUS', 'PSEUDOMONA', 'MICROBIO', 'CUENTA', 'ENTEROBAC'];
+        const firmasFQ = new Set();
+        const firmasMB = new Set();
+
+        resultados.forEach(r => {
+            const nombre = traductor[r.analista] || r.analista;
+            const esMB = palabrasMB.some(p => r.prueba.toUpperCase().includes(p));
+            if (esMB) firmasMB.add(nombre); else firmasFQ.add(nombre);
+        });
+
+        return {
+            muestra: {
+                loteInterno: m.lote_interno,
+                producto: m.producto,
+                fechaIngreso: m.fecha_ingreso,
+                numAnalisis: m.num_analisis || 'N/A',
+                estatus: m.estatus,
+                analistaFQ: Array.from(firmasFQ).join(' / ') || 'N/A',
+                analistaMB: Array.from(firmasMB).join(' / ') || 'N/A',
+                jefeQA,
+                respSanitario,
+                fechaLiberacion: m.fecha_liberacion
+            },
+            resultados: resultados.map(r => ({
+                prueba: r.prueba,
+                especificacion: r.especificacion || 'N/A',
+                resultado: r.resultado,
+                evaluacion: r.evaluacion
+            }))
+        };
     }
 };
 

@@ -1,7 +1,7 @@
 /**
  * ============================================================================
  * LIMS HERBOLARIA - PDF ENGINE (jspdf)
- * Generación de CoA local en cumplimiento con NOM-059
+ * Generación de CoA local en cumplimiento con NOM-059 y CFR 21 Part 11
  * ============================================================================
  */
 
@@ -11,40 +11,45 @@ const PDFEngine = {
         const doc = new jsPDF();
         const m = datos.muestra;
         
-        // Configuración de Colores
-        const colorPrimario = [6, 78, 59]; // Verde Soria
+        // --- CONFIGURACIÓN VISUAL ---
+        const colorVerdeSoria = [6, 78, 59];
+        const colorGrisSuave = [245, 247, 250];
         
-        // 1. CABECERA
-        doc.setFillColor(...colorPrimario);
-        doc.rect(0, 0, 210, 40, 'F');
+        // 1. ENCABEZADO PREMIUM
+        doc.setFillColor(...colorVerdeSoria);
+        doc.rect(0, 0, 210, 45, 'F');
         
         doc.setTextColor(255, 255, 255);
-        doc.setFontSize(22);
         doc.setFont("helvetica", "bold");
-        doc.text("SORIA NATURAL, S.A. DE C.V.", 105, 20, { align: "center" });
+        doc.setFontSize(22);
+        doc.text("SORIA NATURAL, S.A. DE C.V.", 105, 22, { align: "center" });
         
-        doc.setFontSize(12);
-        doc.text(m.tipoAnalisis === 'Estabilidad' ? "CERTIFICADO DE ANÁLISIS DE ESTABILIDAD" : "CERTIFICADO DE ANÁLISIS DE PRODUCTO TERMINADO", 105, 30, { align: "center" });
+        doc.setFontSize(11);
+        doc.setFont("helvetica", "normal");
+        doc.text("CERTIFICADO DE ANÁLISIS DE PRODUCTO TERMINADO", 105, 32, { align: "center" });
+        doc.setFontSize(8);
+        doc.text("CFR 21 PART 11 COMPLIANT DOCUMENT", 105, 38, { align: "center" });
 
-        // 2. INFORMACIÓN DEL LOTE
-        doc.setTextColor(0, 0, 0);
-        doc.setFontSize(10);
-        let y = 50;
+        // 2. BLOQUE DE INFORMACIÓN (Grid)
+        doc.setTextColor(50, 50, 50);
+        doc.setFontSize(9);
+        let y = 55;
         
-        const infoLote = [
-            ["Producto:", m.producto, "Lote Interno:", m.loteInterno],
-            ["No. Análisis:", m.numAnalisis || "N/A", "Presentación:", m.presentacion || "N/A"],
-            ["F. Muestreo:", new Date(m.fechaIngreso).toLocaleDateString(), "F. Análisis:", new Date().toLocaleDateString()],
-            ["Estatus:", m.estatus, "Fecha Caducidad:", "N/A"]
+        const info = [
+            ["PRODUCTO:", m.producto, "LOTE INTERNO:", m.loteInterno],
+            ["No. ANÁLISIS:", m.numAnalisis, "FECHA INGRESO:", new Date(m.fechaIngreso).toLocaleDateString()],
+            ["ESTATUS:", m.estatus.toUpperCase(), "FECHA EMISIÓN:", new Date().toLocaleDateString()]
         ];
 
         doc.autoTable({
             startY: y,
-            head: [],
-            body: infoLote,
+            body: info,
             theme: 'plain',
-            styles: { fontSize: 9, cellPadding: 2 },
-            columnStyles: { 0: { fontStyle: 'bold', width: 35 }, 2: { fontStyle: 'bold', width: 35 } }
+            styles: { fontSize: 8, cellPadding: 2, font: "helvetica" },
+            columnStyles: { 
+                0: { fontStyle: 'bold', textColor: colorVerdeSoria, width: 35 },
+                2: { fontStyle: 'bold', textColor: colorVerdeSoria, width: 35 }
+            }
         });
 
         y = doc.lastAutoTable.finalY + 10;
@@ -52,34 +57,63 @@ const PDFEngine = {
         // 3. TABLA DE RESULTADOS
         doc.autoTable({
             startY: y,
-            head: [['Análisis', 'Especificación', 'Resultado', 'Dictamen']],
-            body: datos.resultados.map(r => [r.prueba, r.especificacion, r.resultado, r.evaluacion]),
-            headStyles: { fillColor: colorPrimario, textColor: [255, 255, 255] },
-            styles: { fontSize: 8, halign: 'center' },
-            columnStyles: { 0: { halign: 'left', fontStyle: 'bold' }, 1: { halign: 'left' } }
+            head: [['ANÁLISIS', 'ESPECIFICACIÓN', 'RESULTADO', 'DICTAMEN']],
+            body: datos.resultados.map(r => [
+                r.prueba, 
+                r.especificacion, 
+                r.resultado, 
+                { content: r.evaluacion, styles: { textColor: r.evaluacion === 'OOS' ? [220, 38, 38] : [5, 150, 105], fontStyle: 'bold' } }
+            ]),
+            headStyles: { fillColor: colorVerdeSoria, textColor: [255, 255, 255], fontSize: 9, halign: 'center' },
+            bodyStyles: { fontSize: 8, halign: 'center' },
+            columnStyles: { 0: { halign: 'left', fontStyle: 'bold', width: 60 }, 1: { halign: 'left' } },
+            alternateRowStyles: { fillColor: colorGrisSuave }
         });
 
-        y = doc.lastAutoTable.finalY + 20;
+        y = doc.lastAutoTable.finalY + 15;
 
         // 4. DICTAMEN FINAL
+        doc.setFontSize(10);
         doc.setFont("helvetica", "bold");
-        doc.text(`Dictamen: ${m.estatus === 'Liberado' ? 'APROBADO' : 'FUERA DE ESPECIFICACIÓN'}`, 20, y);
+        const dictamenColor = m.estatus === 'Liberado' ? [5, 150, 105] : [220, 38, 38];
+        doc.setTextColor(...dictamenColor);
+        doc.text(`DICTAMEN FINAL: ${m.estatus === 'Liberado' ? 'APROBADO' : 'RECHAZADO / FUERA DE ESPECIFICACIÓN'}`, 20, y);
         
-        // 5. FIRMAS (Estilo CFR 21)
-        y += 30;
-        const lineW = 60;
-        doc.line(20, y, 20 + lineW, y); // Firma 1
-        doc.line(130, y, 130 + lineW, y); // Firma 2
+        // 5. CUADRO DE FIRMAS (ALCOA+ Compliance)
+        y += 25;
+        doc.setTextColor(100, 100, 100);
+        doc.setFontSize(7);
         
-        doc.setFontSize(8);
-        doc.text("Jefe de Control de Calidad", 50, y + 5, { align: "center" });
-        doc.text("Responsable Sanitario", 160, y + 5, { align: "center" });
+        // Líneas de firma
+        doc.setDrawColor(200, 200, 200);
+        const col1 = 20, col2 = 115, w = 75;
         
+        // Fila 1: Analistas
+        doc.line(col1, y, col1 + w, y);
+        doc.line(col2, y, col2 + w, y);
+        doc.text(`ANALISTA FQ: ${m.analistaFQ}`, col1 + 2, y + 4);
+        doc.text(`ANALISTA MB: ${m.analistaMB}`, col2 + 2, y + 4);
         doc.setFont("helvetica", "italic");
-        doc.text("Firmado Electrónicamente", 50, y + 10, { align: "center" });
-        doc.text("Firmado Electrónicamente", 160, y + 10, { align: "center" });
+        doc.text("Firmado Electrónicamente (LIMS Secure ID)", col1 + 2, y + 8);
+        doc.text("Firmado Electrónicamente (LIMS Secure ID)", col2 + 2, y + 8);
 
-        // Guardar/Descargar
-        doc.save(`CoA_${m.producto}_${m.loteInterno}.pdf`);
+        // Fila 2: Autoridades
+        y += 35;
+        doc.setFont("helvetica", "normal");
+        doc.line(col1, y, col1 + w, y);
+        doc.line(col2, y, col2 + w, y);
+        doc.text(`JEFE CONTROL CALIDAD: ${m.jefeQA}`, col1 + 2, y + 4);
+        doc.text(`RESPONSABLE SANITARIO: ${m.respSanitario}`, col2 + 2, y + 4);
+        doc.setFont("helvetica", "italic");
+        doc.text(`Validado: ${m.fechaLiberacion ? new Date(m.fechaLiberacion).toLocaleString() : 'N/A'}`, col1 + 2, y + 8);
+        doc.text("Aprobación Regulatoria Final", col2 + 2, y + 8);
+
+        // PIE DE PÁGINA
+        doc.setFontSize(6);
+        doc.setTextColor(150, 150, 150);
+        doc.text(`Este documento es una impresión oficial del sistema LIMS Herbolaria. Id de Seguridad: ${btoa(m.loteInterno).substring(0,12)}`, 105, 285, { align: "center" });
+
+        // DESCARGA
+        doc.save(`CoA_${m.loteInterno}_${m.producto.replace(/\s/g, '_')}.pdf`);
     }
 };

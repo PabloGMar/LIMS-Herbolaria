@@ -52,7 +52,7 @@
     <!-- SECCIÓN PRINCIPAL DEL APP -->
     <div id="appSection" class="hidden flex min-h-screen">
         
-        <!-- SIDEBAR REFINADO -->
+        <!-- SIDEBAR -->
         <aside class="sidebar flex flex-col shadow-sm">
             <div class="mb-8 px-2">
                 <div class="flex items-center gap-3">
@@ -119,8 +119,6 @@
             </header>
 
             <div id="contentArea">
-                
-                <!-- VISTA: MUESTRAS -->
                 <div id="view-muestras" class="animate-fade-in">
                     <div class="grid grid-cols-4 gap-4 mb-8">
                         <div class="stat-card border-l-4 border-amber-400">
@@ -141,7 +139,6 @@
                             </button>
                         </div>
                     </div>
-
                     <div class="table-container">
                         <table>
                             <thead>
@@ -158,9 +155,8 @@
                     </div>
                 </div>
 
-                <!-- VISTA: INVENTARIOS -->
                 <div id="view-inventarios" class="hidden animate-fade-in">
-                    <div class="flex gap-8 mb-12 border-b border-slate-100 pb-2">
+                    <div class="flex gap-8 mb-8 border-b border-slate-100 pb-2">
                         <button onclick="changeSubTab('stock')" class="tab-btn active" id="tab-stock">Reactivos</button>
                         <button onclick="changeSubTab('prep')" class="tab-btn" id="tab-prep">Preparaciones</button>
                         <button onclick="changeSubTab('cepas')" class="tab-btn" id="tab-cepas">Cepario ATCC</button>
@@ -179,26 +175,24 @@
                     </div>
                     <div id="sub-view-cepas" class="table-container hidden animate-fade-in">
                         <table class="w-full">
-                            <thead><tr><th>Tubo</th><th>Cepa</th><th>Pase</th><th>Estatus</th></tr></thead>
+                            <thead><tr><th>Cepa</th><th>ID Tubo</th><th>Pase</th><th>Estatus</th></tr></thead>
                             <tbody id="tablaCepas"></tbody>
                         </table>
                     </div>
                 </div>
 
-                <!-- VISTAS RESTANTES (AUDIT, EQUIPOS, ETC) -->
-                <div id="view-equipos" class="hidden">
+                <div id="view-equipos" class="hidden animate-fade-in">
                     <div class="table-container"><table class="w-full"><thead><tr><th>Equipo</th><th>Código</th><th>Próxima Calib.</th><th>Estatus</th></tr></thead><tbody id="tablaEquipos"></tbody></table></div>
                 </div>
-                <div id="view-audit" class="hidden">
+                <div id="view-audit" class="hidden animate-fade-in">
                     <div class="table-container"><table class="w-full"><thead><tr><th>Fecha</th><th>Usuario</th><th>Acción</th><th>Detalle</th></tr></thead><tbody id="tablaAudit"></tbody></table></div>
                 </div>
-                <div id="view-usuarios" class="hidden">
+                <div id="view-usuarios" class="hidden animate-fade-in">
                     <div class="table-container"><table class="w-full"><thead><tr><th>Nombre</th><th>Usuario</th><th>Rol</th><th>Estatus</th></tr></thead><tbody id="tablaUsuarios"></tbody></table></div>
                 </div>
-
             </div>
 
-            <!-- PANEL SLIDE-OVER (CAPTURA DE RESULTADOS) -->
+            <!-- PANEL SLIDE-OVER (RESULTADOS) -->
             <div id="slideOverOverlay" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-40" onclick="closeSlideOver()"></div>
             <div id="slideOver" class="fixed inset-y-0 right-0 w-full max-w-[320px] bg-white/95 backdrop-blur-xl shadow-[-20px_0_50px_rgba(0,0,0,0.15)] z-50 translate-x-full transition-transform duration-500 ease-out flex flex-col border-l border-white/20">
                 <div class="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
@@ -206,25 +200,24 @@
                         <h2 class="text-lg font-black text-slate-800 tracking-tight">Resultados</h2>
                         <p id="slideOverLote" class="text-blue-600 font-extrabold text-[9px] uppercase tracking-wider">Lote: --</p>
                     </div>
-                    <button onclick="closeSlideOver()" class="w-8 h-8 flex items-center justify-center rounded-lg bg-white shadow-sm text-slate-400 hover:text-rose-500 hover:shadow-md transition-all duration-300 group">
-                        <i class="fas fa-times text-base group-hover:rotate-90 transition-transform duration-300"></i>
+                    <button onclick="closeSlideOver()" class="w-8 h-8 flex items-center justify-center rounded-lg bg-white shadow-sm text-slate-400 hover:text-rose-500 transition-all group">
+                        <i class="fas fa-times text-base group-hover:rotate-90 transition-transform"></i>
                     </button>
                 </div>
-                <div id="slideOverContent" class="flex-1 p-4 overflow-y-auto space-y-4 custom-scrollbar">
-                    <!-- Dinámico -->
-                </div>
-                <div class="sticky-footer bg-slate-50">
+                <div id="slideOverContent" class="flex-1 p-4 overflow-y-auto space-y-4 custom-scrollbar"></div>
+                <div class="p-4 bg-slate-50 border-t space-y-3">
+                    <button id="btnGenerarPDF" onclick="imprimirCertificado()" class="hidden w-full bg-blue-600 text-white py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-blue-100 hover:bg-blue-700 transition-all">
+                        <i class="fas fa-file-pdf mr-2"></i> Imprimir CoA
+                    </button>
                     <p class="text-[8px] text-slate-400 text-center uppercase font-bold tracking-widest">Sistema Certificado CFR 21 Part 11</p>
                 </div>
             </div>
         </main>
     </div>
 
-    <!-- MODAL GENERAL -->
+    <!-- MODALES -->
     <div id="modalOverlay" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-md z-50 flex items-center justify-center p-6">
-        <div id="modalContent" class="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-2xl p-12 animate-scale-up">
-            <!-- Dinámico -->
-        </div>
+        <div id="modalContent" class="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-2xl p-10 animate-scale-up"></div>
     </div>
 
     <!-- SCRIPTS -->
@@ -236,64 +229,26 @@
         let currentUser = null;
         let currentView = 'muestras';
         let currentSubTab = 'stock';
+        let currentLote = null;
 
-        // GESTIÓN DE VISTAS
+        // --- NAVEGACIÓN ---
         async function showView(view) {
-            // Ocultar anterior
-            document.getElementById('view-' + currentView).classList.add('hidden');
+            const oldView = document.getElementById('view-' + currentView);
+            if (oldView) oldView.classList.add('hidden');
             const oldNav = document.getElementById('nav-' + currentView);
             if (oldNav) oldNav.classList.remove('active');
             
-            // Mostrar nueva
-            document.getElementById('view-' + view).classList.remove('hidden');
+            const newView = document.getElementById('view-' + view);
+            if (newView) newView.classList.remove('hidden');
             const newNav = document.getElementById('nav-' + view);
             if (newNav) newNav.classList.add('active');
             
             currentView = view;
-            const titles = { 
-                muestras: 'Panel de Muestras', 
-                inventarios: 'Control de Bodega', 
-                equipos: 'Equipos y Metrología', 
-                audit: 'Audit Trail Permanente', 
-                usuarios: 'Directorio de Personal' 
-            };
-            document.getElementById('viewTitle').textContent = titles[view];
+            const titles = { muestras: 'Panel de Muestras', inventarios: 'Control de Bodega', equipos: 'Equipos y Metrología', audit: 'Audit Trail Permanente', usuarios: 'Directorio de Personal' };
+            const titleEl = document.getElementById('viewTitle');
+            if (titleEl) titleEl.textContent = titles[view] || 'LIMS Cloud';
 
-            // Carga de Datos según vista
-            if (view === 'muestras') actualizarDatos();
-            if (view === 'inventarios') cargarInventarios();
-            if (view === 'equipos') cargarEquipos();
-            if (view === 'audit') cargarAudit();
-            if (view === 'usuarios') cargarUsuarios();
-        }
-
-        async function actualizarDatos() {
-            const table = document.getElementById('tablaMuestras');
-            table.innerHTML = `<tr><td colspan="5" class="p-8 text-center"><i class="fas fa-spinner fa-spin text-blue-600"></i></td></tr>`;
-            
-            try {
-                const muestras = await LIMS.obtenerMuestrasDashboard();
-                document.getElementById('badgeCount').textContent = muestras.length;
-                
-                // Actualizar Stats
-                document.getElementById('stat-cuarentena').textContent = muestras.filter(m => m.estatus === 'Cuarentena').length;
-                document.getElementById('stat-analisis').textContent = muestras.filter(m => m.estatus === 'En Análisis').length;
-                document.getElementById('stat-aprobados').textContent = muestras.filter(m => m.estatus === 'Liberado').length;
-
-                table.innerHTML = muestras.map(m => `
-                    <tr class="hover:bg-slate-50 transition-all cursor-pointer border-b border-slate-50" onclick="openSlideOver('${m.loteInterno}')">
-                        <td class="font-black text-slate-700">${m.loteInterno}</td>
-                        <td class="font-medium text-slate-600">${m.producto}</td>
-                        <td><span class="status-pill ${getEstatusClass(m.estatus)}">${m.estatus}</span></td>
-                        <td class="text-xs text-slate-400 font-mono">${new Date(m.fechaIngreso).toLocaleDateString()}</td>
-                        <td class="text-right">
-                            <button class="w-8 h-8 rounded-full hover:bg-blue-50 text-blue-600 transition-all"><i class="fas fa-chevron-right"></i></button>
-                        </td>
-                    </tr>
-                `).join('');
-            } catch (err) {
-                table.innerHTML = `<tr><td colspan="5" class="p-8 text-center text-rose-500 font-bold">Error: ${err.message}</td></tr>`;
-            }
+            await actualizarDatos();
         }
 
         function changeSubTab(tab) {
@@ -304,491 +259,26 @@
             currentSubTab = tab;
         }
 
-        // LOGIN Y SESIÓN
-        async function handleLogin(e) {
-            e.preventDefault();
-            const u = document.getElementById('usuario').value;
-            const p = document.getElementById('password').value;
-            
-            Swal.fire({ title: 'Iniciando Sesión...', didOpen: () => Swal.showLoading() });
-            
-            const res = await LIMS.login(u, p);
-            if (res.success) {
-                currentUser = res.user;
-                document.getElementById('loginSection').classList.add('hidden');
-                document.getElementById('appSection').classList.remove('hidden');
-                document.getElementById('userName').textContent = currentUser.nombre;
-                document.getElementById('userRole').textContent = currentUser.rol;
-                document.getElementById('userInitial').textContent = currentUser.nombre.charAt(0);
-                Swal.close();
-                actualizarDatos();
-            } else {
-                Swal.fire('Acceso Denegado', res.message, 'error');
-            }
-        }
-
-        // RENDERIZADO DE TABLAS
-        async function actualizarDatos() {
-            if (currentView === 'muestras') await renderMuestras();
-            if (currentView === 'inventarios') await renderInventarios();
-            if (currentView === 'audit') await renderAudit();
-            if (currentView === 'equipos') await renderEquipos();
-            if (currentView === 'usuarios') await renderUsuarios();
-        }
-
-        async function renderMuestras() {
-            try {
-                const muestras = await LIMS.obtenerMuestrasDashboard();
-                const tbody = document.getElementById('tablaMuestras');
-                
-                document.getElementById('stat-cuarentena').textContent = muestras.filter(m => m.estatus === 'Cuarentena').length;
-                document.getElementById('stat-analisis').textContent = muestras.filter(m => m.estatus === 'En Análisis').length;
-                document.getElementById('stat-aprobados').textContent = muestras.filter(m => m.estatus === 'Aprobado' || m.estatus === 'Liberado').length;
-                document.getElementById('badgeCount').textContent = muestras.length;
-
-                tbody.innerHTML = muestras.map(m => `
-                    <tr class="hover:bg-slate-50 transition-all border-b border-slate-50">
-                        <td class="font-bold text-slate-800">${m.loteInterno}</td>
-                        <td class="text-slate-600 font-medium">${m.producto}</td>
-                        <td>
-                            <span class="status-pill status-${m.estatus.toLowerCase().replace(' ', '-')}">${m.estatus}</span>
-                        </td>
-                        <td class="text-slate-400 text-xs font-bold">${new Date(m.fechaIngreso).toLocaleDateString()}</td>
-                        <td class="text-right">
-                            <button onclick="openSlideOver('${m.loteInterno}')" class="btn-primary bg-slate-100 !text-slate-700 hover:!bg-blue-600 hover:!text-white !py-2 !px-4 text-[10px]">VER DETALLE</button>
-                        </td>
-                    </tr>
-                `).join('');
-            } catch (e) { console.error(e); }
-        }
-
-        async function renderInventarios() {
-            const data = await LIMS.obtenerInventarios();
-            
-            // Stock (Reactivos)
-            document.getElementById('tablaStock').innerHTML = data.stock.map(i => `
-                <tr class="hover:bg-blue-50/30">
-                    <td class="px-6 py-4 font-bold text-slate-800 text-xs">${i.nombre}</td>
-                    <td class="px-6 py-4 font-mono text-blue-600 text-[10px]">${i.lote_prov}</td>
-                    <td class="px-6 py-4 text-slate-400 text-xs">${new Date(i.caducidad).toLocaleDateString()}</td>
-                    <td class="px-6 py-4"><span class="status-pill ${getEstatusClass(i.estatus)}">${i.estatus}</span></td>
-                </tr>
-            `).join('') || '<tr><td colspan="4" class="p-8 text-center text-slate-400">Sin datos</td></tr>';
-
-            // Preparaciones
-            document.getElementById('tablaPrep').innerHTML = data.preparaciones.map(p => `
-                <tr class="hover:bg-indigo-50/30">
-                    <td class="px-6 py-4 font-black text-indigo-700 text-xs">${p.lote_interno}</td>
-                    <td class="px-6 py-4 text-xs"><b>${p.tipo}</b><br><span class="text-[10px] text-slate-400">${p.receta || ''}</span></td>
-                    <td class="px-6 py-4 text-slate-400 text-xs">${new Date(p.fecha_prep).toLocaleDateString()}</td>
-                    <td class="px-6 py-4"><span class="status-pill ${getEstatusClass(p.estatus)}">${p.estatus}</span></td>
-                </tr>
-            `).join('') || '<tr><td colspan="4" class="p-8 text-center text-slate-400">Sin datos</td></tr>';
-
-            // Cepas
-            document.getElementById('tablaCepas').innerHTML = data.cepas.map(c => `
-                <tr class="hover:bg-emerald-50/30">
-                    <td class="px-6 py-4 font-mono font-bold text-emerald-700 text-xs">${c.id_tubo}</td>
-                    <td class="px-6 py-4 text-xs font-bold italic">${c.microorganismo}</td>
-                    <td class="px-6 py-4 text-center font-black text-blue-600">${c.pases}</td>
-                    <td class="px-6 py-4 text-center"><span class="status-pill bg-emerald-100 text-emerald-700">ACTIVA</span></td>
-                </tr>
-            `).join('') || '<tr><td colspan="4" class="p-8 text-center text-slate-400">Sin datos</td></tr>';
-        }
-
-        async function renderAudit() {
-            const { data } = await sb.from('audit_trail').select('*').order('fecha', { ascending: false }).limit(50);
-            document.getElementById('tablaAudit').innerHTML = (data || []).map(a => `
-                <tr class="text-xs border-b border-slate-50">
-                    <td class="px-6 py-4 font-mono text-slate-400">${new Date(a.fecha).toLocaleString()}</td>
-                    <td class="px-6 py-4 font-bold text-slate-800">${a.usuario}</td>
-                    <td class="px-6 py-4 font-black text-blue-600 uppercase tracking-tighter">${a.accion}</td>
-                    <td class="px-6 py-4 text-slate-500 italic">${a.detalle}</td>
-                </tr>
-            `).join('');
-        }
-
-        async function renderEquipos() {
-            const { data } = await sb.from('equipos_calibracion').select('*');
-            document.getElementById('tablaEquipos').innerHTML = (data || []).map(e => `
-                <tr>
-                    <td class="px-6 py-4 font-bold text-slate-800 text-sm">${e.equipo}</td>
-                    <td class="px-6 py-4 font-mono text-indigo-600 text-xs">${e.codigo}</td>
-                    <td class="px-6 py-4 text-sm font-black text-slate-500">${e.proxima_cal ? new Date(e.proxima_cal).toLocaleDateString() : 'N/A'}</td>
-                    <td class="px-6 py-4 text-center"><span class="status-pill bg-emerald-100 text-emerald-700">${e.estatus}</span></td>
-                </tr>
-            `).join('');
-        }
-
-        async function renderUsuarios() {
-            const usuarios = await LIMS.obtenerUsuarios();
-            document.getElementById('tablaUsuarios').innerHTML = usuarios.map(u => `
-                <tr>
-                    <td class="px-6 py-4 font-bold text-slate-800 text-sm">${u.nombre}</td>
-                    <td class="px-6 py-4 text-slate-500 font-medium text-sm">${u.usuario}</td>
-                    <td class="px-6 py-4 font-black text-indigo-700 text-xs">${u.rol}</td>
-                    <td class="px-6 py-4 text-center"><span class="status-pill bg-emerald-100 text-emerald-700">${u.estatus}</span></td>
-                </tr>
-            `).join('');
-        }
-
-        // GESTIÓN DE MODALES (MUESTRAS)
-        function openModalMuestra() {
-            document.getElementById('modalOverlay').classList.remove('hidden');
-            document.getElementById('modalContent').innerHTML = `
-                <div class="flex justify-between items-center mb-10">
-                    <h2 class="text-3xl font-black text-slate-800">Nueva Muestra</h2>
-                    <button onclick="closeModal()" class="text-slate-400 hover:text-red-500"><i class="fas fa-times text-2xl"></i></button>
-                </div>
-                <form onsubmit="handleRegistroMuestra(event)" class="grid grid-cols-2 gap-6">
-                    <div class="col-span-2">
-                        <label class="block text-[10px] font-black text-slate-400 uppercase mb-2 tracking-widest">Producto</label>
-                        <input type="text" id="m_producto" required class="form-input" placeholder="Ej: Ácido Cítrico Anhidro">
-                    </div>
-                    <div>
-                        <label class="block text-[10px] font-black text-slate-400 uppercase mb-2 tracking-widest">Lote Interno</label>
-                        <input type="text" id="m_lote" required class="form-input" placeholder="Ej: 240501-A">
-                    </div>
-                    <div>
-                        <label class="block text-[10px] font-black text-slate-400 uppercase mb-2 tracking-widest">Lote Proveedor</label>
-                        <input type="text" id="m_prov" class="form-input" placeholder="Ej: ABC-123">
-                    </div>
-                    <div>
-                        <label class="block text-[10px] font-black text-slate-400 uppercase mb-2 tracking-widest">Cantidad</label>
-                        <input type="text" id="m_cant" class="form-input" placeholder="Ej: 500g">
-                    </div>
-                    <div>
-                        <label class="block text-[10px] font-black text-slate-400 uppercase mb-2 tracking-widest">Análisis #</label>
-                        <input type="text" id="m_num" class="form-input" placeholder="Ej: 001/24">
-                    </div>
-                    <div class="col-span-2 mt-4">
-                        <button type="submit" class="btn-primary w-full py-5 text-lg">Registrar en Cuarentena</button>
-                    </div>
-                </form>
-            `;
-        }
-
-        async function handleRegistroMuestra(e) {
-            e.preventDefault();
-            const data = {
-                producto: document.getElementById('m_producto').value,
-                loteInterno: document.getElementById('m_lote').value,
-                loteProv: document.getElementById('m_prov').value,
-                cantidad: document.getElementById('m_cant').value,
-                numAnalisis: document.getElementById('m_num').value
-            };
-            
-            try {
-                await LIMS.ingresarMuestra(data, currentUser.usuario);
-                closeModal();
-                Swal.fire('¡Éxito!', 'Muestra registrada en Cuarentena.', 'success');
-                actualizarDatos();
-            } catch (err) {
-                Swal.fire('Error', err.message, 'error');
-            }
-        }
-
-        function closeModal() {
-            document.getElementById('modalOverlay').classList.add('hidden');
-        }
-
-        // CAPTURA DE RESULTADOS (SLIDE OVER)
-        let currentLote = null;
-
-        async function openSlideOver(lote) {
-            currentLote = lote;
-            const slideOver = document.getElementById('slideOver');
-            const content = document.getElementById('slideOverContent');
-            
-            slideOver.classList.remove('translate-x-full');
-            document.getElementById('slideOverOverlay').classList.remove('hidden');
-            
-            content.innerHTML = `<div class="p-8 text-center"><i class="fas fa-spinner fa-spin text-4xl text-blue-600"></i><p class="mt-4 font-bold">Cargando Plan de Análisis...</p></div>`;
-
-            try {
-                const info = await LIMS.obtenerPlanDeAnalisis(lote);
-                
-                content.innerHTML = `
-                    <div class="mb-4 border-b border-slate-100 pb-3">
-                        <div class="flex items-center gap-1.5 mb-1">
-                            <div class="w-1.5 h-1.5 bg-blue-500 rounded-full animate-pulse"></div>
-                            <span class="text-[8px] font-black text-slate-400 uppercase tracking-[0.12em]">Análisis de Lote</span>
-                        </div>
-                        <h2 class="text-sm font-black text-slate-800 leading-tight tracking-tight">${info.producto}</h2>
-                    </div>
-
-                    <div class="space-y-2 mb-20" id="contenedorPruebas">
-                        ${info.plan.map((p, i) => {
-                            let inputHTML = '';
-                            if (p.tipoUI === 'cualitativa') {
-                                inputHTML = `
-                                    <select id="input-${i}" class="form-input text-xs" onchange="guardarFila('${lote}', '${p.prueba}', ${i})">
-                                        <option value="">Seleccione...</option>
-                                        <option value="${p.especificacion}" ${p.valorPrevio === p.especificacion ? 'selected' : ''}>${p.especificacion}</option>
-                                        <option value="Otro" ${p.valorPrevio && p.valorPrevio !== p.especificacion ? 'selected' : ''}>Otro (Especificar)</option>
-                                    </select>
-                                    <input type="text" id="extra-${i}" class="form-input text-xs mt-2 ${p.valorPrevio && p.valorPrevio !== p.especificacion ? '' : 'hidden'}" 
-                                        placeholder="Especifique..." value="${p.valorPrevio}">
-                                `;
-                            } else if (p.tipoUI === 'compleja') {
-                                inputHTML = `
-                                    <select id="input-${i}" class="form-input text-xs" onchange="guardarFila('${lote}', '${p.prueba}', ${i})">
-                                        <option value="">Seleccione...</option>
-                                        <option value="Cumple con la prueba" ${p.valorPrevio === 'Cumple con la prueba' ? 'selected' : ''}>Cumple</option>
-                                        <option value="No cumple" ${p.valorPrevio === 'No cumple' ? 'selected' : ''}>No cumple</option>
-                                    </select>
-                                `;
-                            } else {
-                                inputHTML = `
-                                    <input type="text" id="input-${i}" value="${p.valorPrevio}" 
-                                        class="form-input text-xs" placeholder="Resultado..." 
-                                        onchange="guardarFila('${lote}', '${p.prueba}', ${i})">
-                                `;
-                            }
-
-                            const isOOS = p.evaluacion === 'OOS';
-                            
-                            return `
-                                <div class="bg-white rounded-2xl p-5 border ${isOOS ? 'border-rose-200 bg-rose-50/30' : 'border-slate-100'} shadow-sm relative overflow-hidden transition-all duration-300 hover:shadow-md hover:border-slate-200">
-                                    <div class="flex justify-between items-start mb-3">
-                                        <div class="flex items-center gap-2">
-                                            <div class="w-1 h-4 bg-blue-500 rounded-full"></div>
-                                            <h4 class="font-black text-slate-700 text-[10px] uppercase tracking-wider">${p.prueba}</h4>
-                                            ${p.url_pno ? `<a href="${p.url_pno}" target="_blank" class="text-blue-500 hover:text-blue-700 transition-colors"><i class="fas fa-file-alt"></i></a>` : ''}
-                                        </div>
-                                        <span id="eval-${i}" class="status-pill ${getEstatusClass(p.evaluacion)}">${p.evaluacion}</span>
-                                    </div>
-                                    <p class="text-[10px] text-slate-400 mb-4 font-medium italic">Límite: ${p.especificacion}</p>
-                                    <div class="relative">
-                                        ${inputHTML}
-                                    </div>
-                                </div>
-                            `;
-                        }).join('')}
-                    </div>
-
-                    <div class="sticky-footer grid grid-cols-2 gap-2 bg-white/80 backdrop-blur-md p-4 border-t border-slate-100">
-                        <button onclick="guardarTodoElAvance('${lote}')" class="col-span-2 bg-slate-900 text-white py-2.5 rounded-lg font-bold text-[9px] uppercase tracking-[0.12em] hover:bg-slate-800 transition-all shadow-lg shadow-slate-200"><i class="fas fa-signature mr-2 text-blue-400"></i> Firmar Avance</button>
-                        <button id="btnAprobarLote" onclick="ejecutarDictamen('${lote}', 'Liberado')" class="bg-emerald-600 text-white py-2.5 rounded-lg font-bold shadow-lg shadow-emerald-100 hover:bg-emerald-700 transition-all text-[9px] uppercase tracking-widest">Liberar</button>
-                        <button onclick="ejecutarDictamen('${lote}', 'Rechazado')" class="bg-rose-600 text-white py-2.5 rounded-lg font-bold shadow-lg shadow-rose-100 hover:bg-rose-700 transition-all text-[9px] uppercase tracking-widest">Rechazar</button>
-                    </div>
-                `;
-                verificarBloqueoDictamen();
-            } catch (err) {
-                content.innerHTML = `<div class="p-8 text-rose-500 font-bold">Error: ${err.message}</div>`;
-            }
-        }
-
-        async function guardarTodoElAvance(lote) {
-            const { value: password } = await Swal.fire({
-                title: 'Firma Electrónica',
-                input: 'password',
-                inputLabel: 'Ingrese su contraseña para firmar el avance',
-                inputPlaceholder: '••••••••',
-                showCancelButton: true,
-                confirmButtonColor: '#2563eb'
-            });
-
-            if (password) {
-                const resAuth = await LIMS.login(currentUser.usuario, password);
-                if (!resAuth.success) return Swal.fire('Error', 'Firma inválida', 'error');
-
-                const inputs = document.querySelectorAll('[id^="input-"]');
-                Swal.fire({ title: 'Firmando y Guardando...', didOpen: () => Swal.showLoading() });
-                
-                for (let i = 0; i < inputs.length; i++) {
-                    const index = inputs[i].id.split('-')[1];
-                    const prueba = inputs[i].closest('.bg-white').querySelector('h4').textContent;
-                    await guardarFila(lote, prueba, index, true);
-                }
-                
-                Swal.fire({ icon: 'success', title: 'Avance Firmado', text: `Registrado por: ${currentUser.nombre}`, timer: 1500, showConfirmButton: false });
-            }
-        }
-
-        async function guardarFila(lote, prueba, index, silent = false) {
-            let inputEl = document.getElementById(`input-${index}`);
-            let valor = inputEl.value;
-            
-            if (valor === 'Otro') {
-                const extra = document.getElementById(`extra-${index}`);
-                extra.classList.remove('hidden');
-                valor = extra.value;
-                if (!valor && !silent) return;
-            } else {
-                const extra = document.getElementById(`extra-${index}`);
-                if (extra) extra.classList.add('hidden');
-            }
-
-            if (!valor && silent) return;
-
-            try {
-                const res = await LIMS.guardarResultado(lote, prueba, valor, currentUser.usuario);
-                const badge = document.getElementById(`eval-${index}`);
-                const card = badge.closest('.bg-white');
-                
-                badge.textContent = res.evaluacion;
-                badge.className = `status-pill text-[9px] ${getEstatusClass(res.evaluacion)}`;
-                
-                if (res.evaluacion === 'OOS') {
-                    card.classList.add('border-rose-200', 'bg-rose-50/30');
-                } else {
-                    card.classList.remove('border-rose-200', 'bg-rose-50/30');
-                    card.classList.add('border-slate-100');
-                }
-                verificarBloqueoDictamen();
-            } catch (err) {
-                if (!silent) Swal.fire('Error', err.message, 'error');
-            }
-        }
-
-        function verificarBloqueoDictamen() {
-            const evals = Array.from(document.querySelectorAll('[id^="eval-"]')).map(e => e.textContent);
-            const hayOOS = evals.includes('OOS');
-            const btnAprobar = document.getElementById('btnAprobarLote');
-            if (btnAprobar) {
-                btnAprobar.disabled = hayOOS;
-                btnAprobar.className = hayOOS 
-                    ? "bg-slate-200 text-slate-400 py-2.5 rounded-lg font-bold cursor-not-allowed text-[9px] uppercase tracking-widest transition-all"
-                    : "bg-emerald-600 text-white py-2.5 rounded-lg font-bold shadow-lg shadow-emerald-100 hover:bg-emerald-700 transition-all text-[9px] uppercase tracking-widest";
-            }
-        }
-
-        async function ejecutarDictamen(lote, dictamen) {
-            const { value: password } = await Swal.fire({
-                title: 'Firma de Dictamen Final',
-                text: `El lote ${lote} se marcará como ${dictamen}`,
-                input: 'password',
-                inputLabel: 'Contraseña para Firma CFR 21',
-                showCancelButton: true,
-                confirmButtonColor: dictamen === 'Liberado' ? '#059669' : '#dc2626'
-            });
-
-            if (password) {
-                const resAuth = await LIMS.login(currentUser.usuario, password);
-                if (!resAuth.success) return Swal.fire('Error', 'Firma inválida', 'error');
-
-                try {
-                    await LIMS.dictaminarMuestra(lote, dictamen, currentUser.usuario);
-                    Swal.fire('¡Dictaminado!', `Lote ${dictamen} exitosamente por ${currentUser.nombre}`, 'success');
-                    closeSlideOver();
-                    actualizarDatos();
-                } catch (err) {
-                    Swal.fire('Error', err.message, 'error');
-                }
-            }
-        }
-
-        // CALCULADORA CIENTÍFICA
-        function openCalculadora() {
-            document.getElementById('modalOverlay').classList.remove('hidden');
-            document.getElementById('modalContent').innerHTML = `
-                <div class="flex justify-between items-center mb-8">
-                    <h2 class="text-2xl font-black text-slate-800"><i class="fas fa-calculator mr-3 text-blue-600"></i>Calculadora de Reactivos</h2>
-                    <button onclick="closeModal()" class="text-slate-400 hover:text-red-500"><i class="fas fa-times text-xl"></i></button>
-                </div>
-                
-                <div class="grid grid-cols-1 gap-6">
-                    <div>
-                        <label class="block text-[10px] font-black text-slate-400 uppercase mb-2 tracking-widest">Tipo de Cálculo</label>
-                        <select id="calc_tipo" class="form-input" onchange="updateCalcUI()">
-                            <option value="Molaridad">Molaridad (M)</option>
-                            <option value="Normalidad">Normalidad (N)</option>
-                            <option value="Porcentaje">Porcentaje (%)</option>
-                        </select>
-                    </div>
-
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-[10px] font-black text-slate-400 uppercase mb-2 tracking-widest">Volumen Final (mL)</label>
-                            <input type="number" id="calc_vol" class="form-input" placeholder="Ej: 1000" oninput="runCalculo()">
-                        </div>
-                        <div>
-                            <label class="block text-[10px] font-black text-slate-400 uppercase mb-2 tracking-widest">Conc. Deseada</label>
-                            <input type="number" id="calc_conc" class="form-input" placeholder="Ej: 0.1" oninput="runCalculo()">
-                        </div>
-                    </div>
-
-                    <div id="calc_extra" class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-[10px] font-black text-slate-400 uppercase mb-2 tracking-widest">Peso Molecular</label>
-                            <input type="number" id="calc_pm" class="form-input" placeholder="g/mol" oninput="runCalculo()">
-                        </div>
-                        <div>
-                            <label id="label_extra" class="block text-[10px] font-black text-slate-400 uppercase mb-2 tracking-widest">Pureza (%)</label>
-                            <input type="number" id="calc_pureza" class="form-input" value="100" oninput="runCalculo()">
-                        </div>
-                    </div>
-
-                    <div class="bg-blue-600 rounded-3xl p-8 text-center text-white shadow-xl shadow-blue-200 mt-4">
-                        <p class="text-[10px] font-black uppercase tracking-[0.2em] opacity-70 mb-2">Cantidad a Pesar/Medir</p>
-                        <h3 id="calc_resultado" class="text-5xl font-black">0.0000</h3>
-                        <p id="calc_unidad" class="text-sm font-bold mt-2 opacity-80">Gramos (g)</p>
-                    </div>
-                </div>
-            `;
-        }
-
-        function updateCalcUI() {
-            const tipo = document.getElementById('calc_tipo').value;
-            const extra = document.getElementById('calc_extra');
-            const labelExtra = document.getElementById('label_extra');
-            
-            if (tipo === 'Porcentaje') {
-                document.getElementById('calc_pm').parentElement.classList.add('hidden');
-                labelExtra.textContent = 'Concentración Base (%)';
-            } else {
-                document.getElementById('calc_pm').parentElement.classList.remove('hidden');
-                labelExtra.textContent = tipo === 'Normalidad' ? 'Equivalentes' : 'Pureza (%)';
-            }
-            runCalculo();
-        }
-
-        function runCalculo() {
-            const params = {
-                tipo: document.getElementById('calc_tipo').value,
-                volumen: parseFloat(document.getElementById('calc_vol').value) || 0,
-                concentracion: parseFloat(document.getElementById('calc_conc').value) || 0,
-                pm: parseFloat(document.getElementById('calc_pm').value) || 1,
-                extra: parseFloat(document.getElementById('calc_pureza').value) || 100
-            };
-
-            const resultado = LIMS.calcularPreparacion(params);
-            document.getElementById('calc_resultado').textContent = resultado.toFixed(4);
-            document.getElementById('calc_unidad').textContent = params.tipo === 'Porcentaje' ? 'Gramos/mL' : 'Gramos (g)';
-        }
-
-        function closeSlideOver() {
-            document.getElementById('slideOver').classList.add('translate-x-full');
-            document.getElementById('slideOverOverlay').classList.add('hidden');
-        }
-
-            const titleEl = document.getElementById('viewTitle');
-            if (titleEl) titleEl.textContent = titles[view];
-
-            actualizarDatos();
-        }
-
+        // --- CORE SYNC ---
         async function actualizarDatos() {
             if (!currentUser) return;
-            
-            if (currentView === 'muestras') await renderMuestras();
-            if (currentView === 'inventarios') await cargarInventarios();
-            if (currentView === 'equipos') await renderEquipos();
-            if (currentView === 'audit') await renderAudit();
-            if (currentView === 'usuarios') await renderUsuarios();
-            
-            cargarAlertas(); 
+            const actions = {
+                muestras: renderMuestras,
+                inventarios: cargarInventarios,
+                equipos: renderEquipos,
+                audit: renderAudit,
+                usuarios: renderUsuarios
+            };
+            if (actions[currentView]) await actions[currentView]();
+            cargarAlertas();
         }
 
-        // --- LOGIN Y SESIÓN ---
+        // --- AUTH ---
         async function handleLogin(e) {
             e.preventDefault();
             const u = document.getElementById('usuario').value;
             const p = document.getElementById('password').value;
-            
-            Swal.fire({ title: 'Iniciando Sesión...', didOpen: () => Swal.showLoading() });
-            
+            Swal.fire({ title: 'Autenticando...', didOpen: () => Swal.showLoading() });
             try {
                 const res = await LIMS.login(u, p);
                 if (res.success) {
@@ -800,35 +290,29 @@
                     document.getElementById('userInitial').textContent = currentUser.nombre.charAt(0);
                     Swal.close();
                     showView('muestras');
-                } else {
-                    Swal.fire('Acceso Denegado', res.message, 'error');
-                }
-            } catch (err) {
-                Swal.fire('Error de Conexión', err.message, 'error');
-            }
+                } else { Swal.fire('Error', res.message, 'error'); }
+            } catch (err) { Swal.fire('Error de Red', err.message, 'error'); }
         }
 
         function cerrarSesion() { location.reload(); }
 
-        // --- RENDERIZADORES ESPECÍFICOS ---
+        // --- RENDERERS ---
         async function renderMuestras() {
             const tbody = document.getElementById('tablaMuestras');
-            tbody.innerHTML = `<tr><td colspan="5" class="p-8 text-center"><i class="fas fa-spinner fa-spin text-blue-600"></i></td></tr>`;
-            
+            tbody.innerHTML = `<tr><td colspan="5" class="p-8 text-center"><i class="fas fa-spinner fa-spin text-blue-600 text-2xl"></i></td></tr>`;
             try {
                 const muestras = await LIMS.obtenerMuestrasDashboard();
                 document.getElementById('badgeCount').textContent = muestras.length;
                 document.getElementById('stat-cuarentena').textContent = muestras.filter(m => m.estatus === 'Cuarentena').length;
                 document.getElementById('stat-analisis').textContent = muestras.filter(m => m.estatus === 'En Análisis').length;
                 document.getElementById('stat-aprobados').textContent = muestras.filter(m => m.estatus === 'Liberado' || m.estatus === 'Aprobado').length;
-
                 tbody.innerHTML = muestras.map(m => `
-                    <tr class="hover:bg-slate-50 transition-all cursor-pointer border-b border-slate-50" onclick="openSlideOver('${m.loteInterno}')">
-                        <td class="font-black text-slate-700">${m.loteInterno}</td>
-                        <td class="font-medium text-slate-600 text-xs">${m.producto}</td>
+                    <tr class="hover:bg-slate-50 transition-all border-b border-slate-50" onclick="openSlideOver('${m.loteInterno}')">
+                        <td class="font-black text-slate-700 text-xs">${m.loteInterno}</td>
+                        <td class="font-medium text-slate-600 text-[11px]">${m.producto}</td>
                         <td><span class="status-pill ${getEstatusClass(m.estatus)}">${m.estatus}</span></td>
                         <td class="text-[10px] text-slate-400 font-mono">${new Date(m.fechaIngreso).toLocaleDateString()}</td>
-                        <td class="text-right"><button class="w-8 h-8 rounded-full hover:bg-blue-50 text-blue-600 transition-all"><i class="fas fa-chevron-right"></i></button></td>
+                        <td class="text-right"><i class="fas fa-chevron-right text-slate-300"></i></td>
                     </tr>
                 `).join('');
             } catch (err) { console.error(err); }
@@ -837,53 +321,30 @@
         async function cargarInventarios() {
             try {
                 const data = await LIMS.obtenerInventarios();
-                document.getElementById('tablaStock').innerHTML = data.stock.map(i => `
-                    <tr><td class="py-4 font-bold text-slate-700 text-xs">${i.nombre}</td><td class="py-4 font-mono text-[10px] text-blue-600">${i.lote_prov}</td><td class="py-4 text-[10px] text-slate-500">${new Date(i.caducidad).toLocaleDateString()}</td><td class="py-4"><span class="status-pill ${getEstatusClass(i.estatus)}">${i.estatus}</span></td></tr>
-                `).join('');
-                document.getElementById('tablaPrep').innerHTML = data.preparaciones.map(p => `
-                    <tr><td class="py-4 font-black text-indigo-600 text-[10px]">${p.lote}</td><td class="py-4 text-[10px] font-bold">${p.tipo}</td><td class="py-4 text-[10px] text-slate-500">${new Date(p.fecha_preparacion).toLocaleDateString()}</td><td class="py-4"><span class="status-pill ${getEstatusClass(p.estatus)}">${p.estatus}</span></td></tr>
-                `).join('');
-                document.getElementById('tablaCepas').innerHTML = data.cepas.map(c => `
-                    <tr><td class="py-4 font-bold italic text-slate-700 text-xs">${c.microorganismo}</td><td class="py-4 font-mono text-[10px] text-indigo-500">${c.id_tubo}</td><td class="py-4 text-center font-black text-blue-600 text-xs">${c.pases}</td><td class="py-4"><span class="status-pill bg-emerald-50 text-emerald-700 border-emerald-100">${c.estatus}</span></td></tr>
-                `).join('');
+                document.getElementById('tablaStock').innerHTML = data.stock.map(i => `<tr><td class="py-3 font-bold text-slate-700 text-xs">${i.nombre}</td><td class="py-3 font-mono text-[10px] text-blue-600">${i.lote_prov}</td><td class="py-3 text-[10px] text-slate-500">${new Date(i.caducidad).toLocaleDateString()}</td><td><span class="status-pill ${getEstatusClass(i.estatus)}">${i.estatus}</span></td></tr>`).join('');
+                document.getElementById('tablaPrep').innerHTML = data.preparaciones.map(p => `<tr><td class="py-3 font-black text-indigo-600 text-[10px]">${p.lote}</td><td class="py-3 text-[10px] font-bold">${p.tipo}</td><td class="py-3 text-[10px] text-slate-500">${new Date(p.fecha_preparacion).toLocaleDateString()}</td><td><span class="status-pill ${getEstatusClass(p.estatus)}">${p.estatus}</span></td></tr>`).join('');
+                document.getElementById('tablaCepas').innerHTML = data.cepas.map(c => `<tr><td class="py-3 font-bold italic text-slate-700 text-xs">${c.microorganismo}</td><td class="py-3 font-mono text-[10px] text-indigo-500">${c.id_tubo}</td><td class="py-3 text-center font-black text-blue-600 text-xs">${c.pases}</td><td><span class="status-pill bg-emerald-50 text-emerald-700">${c.estatus}</span></td></tr>`).join('');
             } catch (err) { console.error(err); }
-        }
-
-        function changeSubTab(tab) {
-            document.getElementById('sub-view-' + currentSubTab).classList.add('hidden');
-            document.getElementById('tab-' + currentSubTab).classList.remove('active');
-            document.getElementById('sub-view-' + tab).classList.remove('hidden');
-            document.getElementById('tab-' + tab).classList.add('active');
-            currentSubTab = tab;
         }
 
         async function renderAudit() {
             try {
                 const data = await LIMS.obtenerAuditTrailBD();
-                document.getElementById('tablaAudit').innerHTML = data.map(i => {
-                    const colorAccion = i.accion.includes('Error') || i.accion.includes('Fallido') ? 'text-rose-600' : (i.accion.includes('Firma') || i.accion.includes('Dictamen') ? 'text-blue-600' : 'text-slate-800');
-                    return `<tr class="hover:bg-slate-50/50 transition-colors border-b border-slate-50"><td class="px-4 py-3 text-[10px] font-mono text-slate-400">${new Date(i.fecha).toLocaleString()}</td><td class="px-4 py-3 text-xs font-bold text-slate-600">${i.usuario}</td><td class="px-4 py-3 text-xs font-black ${colorAccion}">${i.accion}</td><td class="px-4 py-3 text-[11px] text-slate-500 font-medium">${i.detalle}</td></tr>`;
-                }).join('');
+                document.getElementById('tablaAudit').innerHTML = data.map(i => `<tr class="border-b border-slate-50"><td class="px-4 py-2 text-[10px] font-mono text-slate-400">${new Date(i.fecha).toLocaleString()}</td><td class="px-4 py-2 text-xs font-bold text-slate-600">${i.usuario}</td><td class="px-4 py-2 text-xs font-black uppercase text-blue-600">${i.accion}</td><td class="px-4 py-2 text-[11px] text-slate-500">${i.detalle}</td></tr>`).join('');
             } catch (err) { console.error(err); }
         }
 
         async function renderEquipos() {
             try {
                 const data = await LIMS.obtenerEquiposBD();
-                document.getElementById('tablaEquipos').innerHTML = data.map(e => {
-                    const dias = Math.ceil((new Date(e.proxima) - new Date()) / (1000 * 60 * 60 * 24));
-                    const colorStatus = dias < 0 ? 'bg-rose-50 text-rose-700 border-rose-100' : (dias <= 30 ? 'bg-amber-50 text-amber-700 border-amber-100' : 'bg-emerald-50 text-emerald-700 border-emerald-100');
-                    return `<tr class="hover:bg-slate-50/50 transition-colors border-b border-slate-50"><td class="px-4 py-4 font-bold text-slate-700 text-xs">${e.equipo}</td><td class="px-4 py-4 font-black text-blue-600 text-[10px]">${e.codigo}</td><td class="px-4 py-4 font-bold text-[10px] text-slate-500">${new Date(e.proxima).toLocaleDateString()}</td><td><span class="status-pill ${colorStatus}">${dias < 0 ? 'Vencido' : (dias <= 30 ? 'Por Vencer' : 'Vigente')}</span></td></tr>`;
-                }).join('');
+                document.getElementById('tablaEquipos').innerHTML = data.map(e => `<tr class="border-b border-slate-50"><td class="px-4 py-3 font-bold text-slate-700 text-xs">${e.equipo}</td><td class="px-4 py-3 font-black text-blue-600 text-[10px]">${e.codigo}</td><td class="px-4 py-3 font-bold text-[10px] text-slate-500">${new Date(e.proxima).toLocaleDateString()}</td><td><span class="status-pill bg-emerald-50 text-emerald-700">Vigente</span></td></tr>`).join('');
             } catch (err) { console.error(err); }
         }
 
         async function renderUsuarios() {
             try {
                 const data = await LIMS.obtenerUsuarios();
-                document.getElementById('tablaUsuarios').innerHTML = data.map(u => `
-                    <tr class="border-b border-slate-50"><td class="py-4 font-bold text-slate-700 text-xs">${u.nombre}</td><td class="py-4 text-[10px] text-slate-500">${u.usuario}</td><td class="py-4 text-[10px] font-black uppercase text-blue-600">${u.rol}</td><td><span class="status-pill ${u.estatus === 'Activo' ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'}">${u.estatus}</span></td></tr>
-                `).join('');
+                document.getElementById('tablaUsuarios').innerHTML = data.map(u => `<tr class="border-b border-slate-50"><td class="py-3 font-bold text-slate-700 text-xs">${u.nombre}</td><td class="py-3 text-[10px] text-slate-500">${u.usuario}</td><td class="py-3 text-[10px] font-black uppercase text-blue-600">${u.rol}</td><td><span class="status-pill ${u.estatus === 'Activo' ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'}">${u.estatus}</span></td></tr>`).join('');
             } catch (err) { console.error(err); }
         }
 
@@ -893,72 +354,56 @@
             try {
                 const alertas = await LIMS.obtenerAlertasCaducidad();
                 if (alertas.length === 0) {
-                    container.innerHTML = `<div class="p-4 text-center bg-emerald-50 rounded-2xl border border-emerald-100"><p class="text-[9px] font-black text-emerald-700 uppercase">Todo Vigente</p></div>`;
+                    container.innerHTML = `<div class="p-3 text-center bg-emerald-50 rounded-xl"><p class="text-[8px] font-black text-emerald-700 uppercase">Sin Alertas</p></div>`;
                     return;
                 }
-                container.innerHTML = alertas.map(a => `
-                    <div class="p-3 rounded-2xl border ${a.diasRestantes < 0 ? 'border-rose-200 bg-rose-50' : 'border-amber-200 bg-amber-50'} mb-2">
-                        <div class="flex justify-between mb-1"><span class="text-[8px] font-black ${a.diasRestantes < 0 ? 'text-rose-600' : 'text-amber-600'} uppercase">${a.categoria}</span><span class="text-[8px] font-black text-slate-400">${a.diasRestantes < 0 ? 'VENCIDO' : a.diasRestantes + ' DÍAS'}</span></div>
-                        <p class="text-[10px] font-bold text-slate-800 leading-tight">${a.nombre}</p>
-                    </div>
-                `).join('');
+                container.innerHTML = alertas.map(a => `<div class="p-2 rounded-xl border border-amber-100 bg-amber-50 mb-2"><div class="flex justify-between mb-1"><span class="text-[7px] font-black text-amber-600 uppercase">${a.categoria}</span><span class="text-[7px] font-black text-slate-400">${a.diasRestantes}D</span></div><p class="text-[9px] font-bold text-slate-800 leading-tight">${a.nombre}</p></div>`).join('');
             } catch (err) { console.error(err); }
         }
 
-        // --- GESTIÓN DE MUESTRAS ---
+        // --- OPERACIONES ---
         function openModalMuestra() {
             document.getElementById('modalOverlay').classList.remove('hidden');
             document.getElementById('modalContent').innerHTML = `
-                <div class="flex justify-between items-center mb-8">
-                    <h2 class="text-2xl font-black text-slate-800 tracking-tight">Nueva Muestra</h2>
-                    <button onclick="closeModal()" class="text-slate-400 hover:text-red-500"><i class="fas fa-times text-xl"></i></button>
-                </div>
+                <div class="flex justify-between items-center mb-6"><h2 class="text-xl font-black text-slate-800">Nueva Muestra</h2><button onclick="closeModal()"><i class="fas fa-times text-slate-400"></i></button></div>
                 <form onsubmit="handleRegistroMuestra(event)" class="grid grid-cols-2 gap-4">
-                    <div class="col-span-2">
-                        <label class="block text-[10px] font-black text-slate-400 uppercase mb-2 tracking-widest">Producto</label>
-                        <input type="text" id="m_producto" required class="form-input" placeholder="Ej: Ácido Cítrico">
-                    </div>
-                    <div><label class="block text-[10px] font-black text-slate-400 uppercase mb-2 tracking-widest">Lote Interno</label><input type="text" id="m_lote" required class="form-input"></div>
-                    <div><label class="block text-[10px] font-black text-slate-400 uppercase mb-2 tracking-widest">Lote Prov</label><input type="text" id="m_prov" class="form-input"></div>
-                    <div class="col-span-2 mt-4"><button type="submit" class="btn-primary w-full py-4 text-sm">Registrar en Cuarentena</button></div>
-                </form>
-            `;
+                    <div class="col-span-2"><label class="block text-[10px] font-black text-slate-400 uppercase mb-1">Producto</label><input type="text" id="m_producto" required class="form-input"></div>
+                    <div><label class="block text-[10px] font-black text-slate-400 uppercase mb-1">Lote Int</label><input type="text" id="m_lote" required class="form-input"></div>
+                    <div><label class="block text-[10px] font-black text-slate-400 uppercase mb-1">Lote Prov</label><input type="text" id="m_prov" class="form-input"></div>
+                    <div class="col-span-2 mt-4"><button type="submit" class="btn-primary w-full py-3">Registrar</button></div>
+                </form>`;
         }
 
         async function handleRegistroMuestra(e) {
             e.preventDefault();
             const data = { producto: document.getElementById('m_producto').value, loteInterno: document.getElementById('m_lote').value, loteProv: document.getElementById('m_prov').value, cantidad: 'N/A', numAnalisis: '000/24' };
-            try {
-                await LIMS.ingresarMuestra(data, currentUser.usuario);
-                closeModal();
-                Swal.fire('¡Éxito!', 'Muestra registrada.', 'success');
-                actualizarDatos();
-            } catch (err) { Swal.fire('Error', err.message, 'error'); }
+            try { await LIMS.ingresarMuestra(data, currentUser.usuario); closeModal(); Swal.fire('Éxito', 'Muestra Registrada', 'success'); actualizarDatos(); } catch (err) { Swal.fire('Error', err.message, 'error'); }
         }
 
         function closeModal() { document.getElementById('modalOverlay').classList.add('hidden'); }
 
-        // --- CAPTURA DE RESULTADOS ---
-        let currentLote = null;
         async function openSlideOver(lote) {
             currentLote = lote;
             document.getElementById('slideOver').classList.remove('translate-x-full');
             document.getElementById('slideOverOverlay').classList.remove('hidden');
             document.getElementById('slideOverLote').textContent = `Lote: ${lote}`;
             const content = document.getElementById('slideOverContent');
-            content.innerHTML = `<div class="p-8 text-center"><i class="fas fa-spinner fa-spin text-blue-600"></i></div>`;
+            content.innerHTML = `<div class="p-8 text-center"><i class="fas fa-spinner fa-spin text-blue-600 text-3xl"></i></div>`;
             try {
                 const info = await LIMS.obtenerPlanDeAnalisis(lote);
+                // Mostrar botón PDF solo si está liberado o aprobado
+                const btnPDF = document.getElementById('btnGenerarPDF');
+                if (btnPDF) btnPDF.classList.toggle('hidden', !(info.estatus === 'Liberado' || info.estatus === 'Aprobado'));
+
                 content.innerHTML = info.plan.map((p, i) => {
                     let inputHTML = `<input type="text" id="input-${i}" value="${p.valorPrevio}" class="form-input text-xs" onchange="guardarFila('${lote}', '${p.prueba}', ${i})">`;
-                    if (p.tipoUI === 'cualitativa') inputHTML = `<select id="input-${i}" class="form-input text-xs" onchange="guardarFila('${lote}', '${p.prueba}', ${i})"><option value="">Seleccione...</option><option value="${p.especificacion}" ${p.valorPrevio === p.especificacion ? 'selected' : ''}>${p.especificacion}</option><option value="Otro" ${p.valorPrevio && p.valorPrevio !== p.especificacion ? 'selected' : ''}>Otro</option></select>`;
-                    if (p.tipoUI === 'compleja') inputHTML = `<select id="input-${i}" class="form-input text-xs" onchange="guardarFila('${lote}', '${p.prueba}', ${i})"><option value="">Seleccione...</option><option value="Cumple con la prueba" ${p.valorPrevio === 'Cumple con la prueba' ? 'selected' : ''}>Cumple</option><option value="No cumple" ${p.valorPrevio === 'No cumple' ? 'selected' : ''}>No cumple</option></select>`;
-                    return `<div class="bg-white rounded-xl p-4 border ${p.evaluacion === 'OOS' ? 'border-rose-200 bg-rose-50/30' : 'border-slate-100'} shadow-sm">
-                        <div class="flex justify-between mb-2"><h4 class="font-black text-slate-700 text-[10px] uppercase">${p.prueba}</h4><span id="eval-${i}" class="status-pill text-[9px] ${getEstatusClass(p.evaluacion)}">${p.evaluacion}</span></div>
-                        <p class="text-[9px] text-slate-400 mb-2 font-medium">Límite: ${p.especificacion}</p>
-                        ${inputHTML}
-                    </div>`;
-                }).join('') + `<div class="sticky-footer grid grid-cols-2 gap-2 p-2"><button onclick="ejecutarDictamen('${lote}', 'Liberado')" class="bg-emerald-600 text-white py-2 rounded-lg font-bold text-[9px] uppercase tracking-widest shadow-lg shadow-emerald-100">Liberar</button><button onclick="ejecutarDictamen('${lote}', 'Rechazado')" class="bg-rose-600 text-white py-2 rounded-lg font-bold text-[9px] uppercase tracking-widest shadow-lg shadow-rose-100">Rechazar</button></div>`;
+                    if (p.tipoUI === 'cualitativa') inputHTML = `<select id="input-${i}" class="form-input text-xs" onchange="guardarFila('${lote}', '${p.prueba}', ${i})"><option value="">...</option><option value="${p.especificacion}" ${p.valorPrevio === p.especificacion ? 'selected' : ''}>${p.especificacion}</option><option value="Otro" ${p.valorPrevio && p.valorPrevio !== p.especificacion ? 'selected' : ''}>Otro</option></select>`;
+                    if (p.tipoUI === 'compleja') inputHTML = `<select id="input-${i}" class="form-input text-xs" onchange="guardarFila('${lote}', '${p.prueba}', ${i})"><option value="">...</option><option value="Cumple con la prueba" ${p.valorPrevio === 'Cumple con la prueba' ? 'selected' : ''}>Cumple</option><option value="No cumple" ${p.valorPrevio === 'No cumple' ? 'selected' : ''}>No cumple</option></select>`;
+                    return `<div class="bg-white rounded-xl p-3 border ${p.evaluacion === 'OOS' ? 'border-rose-200 bg-rose-50/30' : 'border-slate-100'} shadow-sm mb-2 transition-all">
+                        <div class="flex justify-between mb-1"><h4 class="font-black text-slate-700 text-[9px] uppercase">${p.prueba}</h4><span id="eval-${i}" class="status-pill text-[8px] ${getEstatusClass(p.evaluacion)}">${p.evaluacion}</span></div>
+                        <p class="text-[9px] text-slate-400 mb-2 italic">Límite: ${p.especificacion}</p>${inputHTML}</div>`;
+                }).join('') + `<div class="sticky-footer grid grid-cols-2 gap-2 p-3 bg-white/90 backdrop-blur-sm border-t mt-4"><button onclick="ejecutarDictamen('${lote}', 'Liberado')" class="bg-emerald-600 text-white py-2 rounded-lg font-bold text-[9px] uppercase tracking-widest shadow-lg hover:bg-emerald-700">Liberar</button><button onclick="ejecutarDictamen('${lote}', 'Rechazado')" class="bg-rose-600 text-white py-2 rounded-lg font-bold text-[9px] uppercase tracking-widest shadow-lg hover:bg-rose-700">Rechazar</button></div>`;
+                verificarBloqueoDictamen();
             } catch (err) { content.innerHTML = `<p class="p-4 text-rose-500 font-bold">${err.message}</p>`; }
         }
 
@@ -970,36 +415,41 @@
                 const res = await LIMS.guardarResultado(lote, prueba, val, currentUser.usuario);
                 const badge = document.getElementById(`eval-${index}`);
                 badge.textContent = res.evaluacion;
-                badge.className = `status-pill text-[9px] ${getEstatusClass(res.evaluacion)}`;
-                badge.closest('.bg-white').className = `bg-white rounded-xl p-4 border ${res.evaluacion === 'OOS' ? 'border-rose-200 bg-rose-50/30' : 'border-slate-100'} shadow-sm`;
+                badge.className = `status-pill text-[8px] ${getEstatusClass(res.evaluacion)}`;
+                badge.closest('.bg-white').className = `bg-white rounded-xl p-3 border ${res.evaluacion === 'OOS' ? 'border-rose-200 bg-rose-50/30' : 'border-slate-100'} shadow-sm mb-2 transition-all`;
+                verificarBloqueoDictamen();
             } catch (err) { Swal.fire('Error', err.message, 'error'); }
         }
 
-        async function ejecutarDictamen(lote, dictamen) {
-            const { value: password } = await Swal.fire({ title: 'Firma de Dictamen', text: `Lote ${lote} -> ${dictamen}`, input: 'password', inputLabel: 'Contraseña CFR 21', showCancelButton: true });
-            if (password) {
-                const auth = await LIMS.login(currentUser.usuario, password);
-                if (!auth.success) return Swal.fire('Error', 'Firma inválida', 'error');
-                try {
-                    await LIMS.dictaminarMuestra(lote, dictamen, currentUser.usuario);
-                    Swal.fire('Éxito', `Lote ${dictamen}`, 'success');
-                    closeSlideOver(); actualizarDatos();
-                } catch (err) { Swal.fire('Error', err.message, 'error'); }
+        function verificarBloqueoDictamen() {
+            const evals = Array.from(document.querySelectorAll('[id^="eval-"]')).map(e => e.textContent);
+            const hayOOS = evals.includes('OOS');
+            const btns = document.querySelectorAll('.sticky-footer button');
+            if (btns[0]) {
+                btns[0].disabled = hayOOS;
+                btns[0].className = hayOOS ? "bg-slate-200 text-slate-400 py-2 rounded-lg font-bold text-[9px] cursor-not-allowed" : "bg-emerald-600 text-white py-2 rounded-lg font-bold text-[9px] uppercase tracking-widest shadow-lg hover:bg-emerald-700";
             }
         }
 
-        // --- CALCULADORA ---
+        async function ejecutarDictamen(lote, dictamen) {
+            const { value: password } = await Swal.fire({ title: 'Firma CFR 21', text: `Confirmar dictamen como ${dictamen}`, input: 'password', showCancelButton: true });
+            if (password) {
+                const auth = await LIMS.login(currentUser.usuario, password);
+                if (!auth.success) return Swal.fire('Error', 'Firma inválida', 'error');
+                try { await LIMS.dictaminarMuestra(lote, dictamen, currentUser.usuario); Swal.fire('¡Éxito!', `Lote ${dictamen} correctamente`, 'success'); closeSlideOver(); actualizarDatos(); } catch (err) { Swal.fire('Error', err.message, 'error'); }
+            }
+        }
+
         function openCalculadora() {
             document.getElementById('modalOverlay').classList.remove('hidden');
             document.getElementById('modalContent').innerHTML = `
-                <div class="flex justify-between items-center mb-6"><h2 class="text-xl font-black text-slate-800">Calculadora de Reactivos</h2><button onclick="closeModal()"><i class="fas fa-times"></i></button></div>
+                <div class="flex justify-between items-center mb-6"><h2 class="text-xl font-black text-slate-800">Calculadora Lab</h2><button onclick="closeModal()"><i class="fas fa-times text-slate-400"></i></button></div>
                 <div class="space-y-4">
-                    <div><label class="text-[10px] font-black uppercase text-slate-400">Tipo</label><select id="c_tipo" class="form-input" onchange="runCalc()"><option value="Molaridad">Molaridad (M)</option><option value="Porcentaje">Porcentaje (%)</option></select></div>
-                    <div class="grid grid-cols-2 gap-4"><div><label class="text-[10px] font-black uppercase text-slate-400">Vol (mL)</label><input type="number" id="c_vol" class="form-input" value="1000" oninput="runCalc()"></div><div><label class="text-[10px] font-black uppercase text-slate-400">Conc</label><input type="number" id="c_conc" class="form-input" value="0.1" oninput="runCalc()"></div></div>
-                    <div class="grid grid-cols-2 gap-4" id="c_extra_row"><div><label class="text-[10px] font-black uppercase text-slate-400">PM</label><input type="number" id="c_pm" class="form-input" value="40" oninput="runCalc()"></div><div><label class="text-[10px] font-black uppercase text-slate-400">Pureza (%)</label><input type="number" id="c_pureza" class="form-input" value="100" oninput="runCalc()"></div></div>
-                    <div class="bg-blue-600 rounded-2xl p-6 text-center text-white shadow-lg"><p class="text-[9px] font-black uppercase opacity-70">Resultado</p><h3 id="c_res" class="text-4xl font-black">0.0000</h3><p class="text-[10px] font-bold mt-1">Gramos (g)</p></div>
-                </div>
-            `;
+                    <div><label class="text-[9px] font-black uppercase text-slate-400">Tipo</label><select id="c_tipo" class="form-input text-xs" onchange="runCalc()"><option value="Molaridad">Molaridad (M)</option><option value="Porcentaje">Porcentaje (%)</option></select></div>
+                    <div class="grid grid-cols-2 gap-4"><div><label class="text-[9px] font-black uppercase text-slate-400">Vol (mL)</label><input type="number" id="c_vol" class="form-input text-xs" value="1000" oninput="runCalc()"></div><div><label class="text-[9px] font-black uppercase text-slate-400">Conc</label><input type="number" id="c_conc" class="form-input text-xs" value="0.1" oninput="runCalc()"></div></div>
+                    <div id="c_extra_row" class="grid grid-cols-2 gap-4"><div><label class="text-[9px] font-black uppercase text-slate-400">PM</label><input type="number" id="c_pm" class="form-input text-xs" value="40" oninput="runCalc()"></div><div><label class="text-[9px] font-black uppercase text-slate-400">Pureza (%)</label><input type="number" id="c_pureza" class="form-input text-xs" value="100" oninput="runCalc()"></div></div>
+                    <div class="bg-blue-600 rounded-3xl p-6 text-center text-white shadow-lg"><h3 id="c_res" class="text-4xl font-black">0.0000</h3><p class="text-[10px] font-bold mt-1">Gramos (g)</p></div>
+                </div>`;
             runCalc();
         }
 
@@ -1009,17 +459,16 @@
             const conc = parseFloat(document.getElementById('c_conc').value) || 0;
             const extraRow = document.getElementById('c_extra_row');
             if (tipo === 'Porcentaje') {
-                extraRow.classList.add('hidden');
+                if (extraRow) extraRow.classList.add('hidden');
                 document.getElementById('c_res').textContent = ((conc * vol) / 100).toFixed(4);
             } else {
-                extraRow.classList.remove('hidden');
+                if (extraRow) extraRow.classList.remove('hidden');
                 const pm = parseFloat(document.getElementById('c_pm').value) || 1;
                 const pur = (parseFloat(document.getElementById('c_pureza').value) || 100) / 100;
                 document.getElementById('c_res').textContent = ((conc * (vol / 1000) * pm) / pur).toFixed(4);
             }
         }
 
-        // --- HELPERS ---
         function getEstatusClass(e) {
             switch(e) {
                 case 'Cuarentena': return 'bg-amber-100 text-amber-700';
@@ -1030,9 +479,19 @@
             }
         }
 
-        // --- INIT ---
-        setInterval(cargarAlertas, 300000);
-        cargarAlertas();
+        async function imprimirCertificado() {
+            if (!currentLote) return;
+            Swal.fire({ title: 'Generando Documento Seguro...', text: 'Recopilando firmas y resultados...', didOpen: () => Swal.showLoading() });
+            try {
+                const datos = await LIMS.prepararDatosParaCoA(currentLote);
+                await PDFEngine.generarCoA(datos);
+                Swal.fire({ icon: 'success', title: 'CoA Generado', text: 'El certificado se ha descargado correctamente.', timer: 2000, showConfirmButton: false });
+            } catch (err) {
+                Swal.fire('Error de Generación', err.message, 'error');
+            }
+        }
+
+        setInterval(actualizarDatos, 300000);
     </script>
 </body>
 </html>
