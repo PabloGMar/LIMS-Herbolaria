@@ -1,0 +1,836 @@
+<div id="toastContainer" class="fixed bottom-6 right-6 z-50 flex flex-col gap-3 pointer-events-none"></div>
+
+<div id="modalFirmaElectronica"
+    class="fixed inset-0 bg-slate-900 bg-opacity-75 z-[60] hidden items-center justify-center backdrop-blur-sm">
+    <div class="bg-white rounded-xl shadow-2xl p-6 w-96 transform scale-100 transition-transform">
+        <div class="flex items-center gap-3 mb-4 text-indigo-700">
+            <i class="fas fa-fingerprint text-3xl"></i>
+            <h3 class="text-lg font-bold">Firma Electrónica</h3>
+        </div>
+        <p class="text-sm text-slate-600 mb-4">Ingrese contraseña para confirmar (21 CFR Parte 11).</p>
+        <input type="password" id="inputFirmaPassword" onkeyup="if(event.key === 'Enter') ejecutarFirmaDictamen()"
+            class="w-full border-2 border-slate-200 rounded-lg p-2.5 mb-4 focus:ring-2 focus:ring-indigo-500 outline-none">
+        <p id="errorFirma" class="text-red-500 text-xs font-bold mb-4 hidden"></p>
+        <div class="flex justify-end gap-3">
+            <button onclick="cerrarModalFirma()"
+                class="px-4 py-2 text-slate-500 hover:bg-slate-100 rounded-lg font-bold transition-colors">Cancelar</button>
+            <button onclick="ejecutarFirmaDictamen()"
+                class="px-4 py-2 bg-indigo-600 text-white rounded-lg font-bold shadow-md hover:bg-indigo-700 flex items-center gap-2">
+                <i class="fas fa-pen-nib"></i> Firmar y Aplicar
+            </button>
+        </div>
+    </div>
+</div>
+
+<div id="slideOverOverlay"
+    class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-40 hidden transition-opacity duration-300 opacity-0"
+    onclick="cerrarSlideOver()"></div>
+<div id="slideOverPanel"
+    class="fixed inset-y-0 right-0 z-50 w-full max-w-md bg-white shadow-2xl transform translate-x-full transition-transform duration-300 ease-in-out flex flex-col border-l border-slate-100">
+    <div class="px-6 py-5 border-b border-slate-100 bg-slate-50 flex items-center justify-between shrink-0">
+        <div>
+            <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2"><i
+                    class="fas fa-microscope text-blue-600"></i> Captura de Resultados</h3>
+            <p id="slideOverProducto" class="text-sm text-slate-500 font-medium mt-1">Cargando...</p>
+            <span id="slideOverLote"
+                class="inline-block bg-blue-100 text-blue-700 text-xs font-bold px-2 py-0.5 rounded mt-1"></span>
+        </div>
+        <button onclick="cerrarSlideOver()" class="text-slate-400 hover:text-slate-700 p-2"><i
+                class="fas fa-times text-xl"></i></button>
+    </div>
+    <div class="flex-1 overflow-y-auto no-scrollbar p-6 bg-slate-50/30">
+        <div id="planAnaliticoLoader" class="hidden flex flex-col items-center justify-center py-10">
+            <div class="loader rounded-full border-2 border-t-2 border-slate-200 border-t-blue-600 h-8 w-8 mb-3"></div>
+            <p class="text-sm text-slate-500">Consultando especificaciones...</p>
+        </div>
+        <div id="planAnaliticoContent" class="space-y-4 pb-4"></div>
+    </div>
+    <div class="p-5 border-t border-slate-200 bg-white shrink-0 space-y-4 shadow-[0_-10px_15px_-3px_rgba(0,0,0,0.05)]">
+        <button id="btnGuardarParcial" onclick="prepararFirmaAvance()"
+            class="w-full bg-blue-50 text-blue-700 hover:bg-blue-600 hover:text-white border border-blue-200 font-bold py-2.5 rounded-xl transition-all transform active:scale-95 flex items-center justify-center gap-2">
+            <i class="fas fa-fingerprint"></i> <span id="btnGuardarParcialText">Firmar Avance (CFR 21)</span>
+            <div id="btnGuardarParcialLoader"
+                class="hidden loader rounded-full border-2 border-t-2 border-current h-4 w-4"></div>
+        </button>
+        <div class="w-full h-px bg-slate-200"></div>
+        <div>
+            <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Dictamen Final (Cierra el Lote)</label>
+            <select id="dictamenFinal" onchange="actualizarColorSelect(this)"
+                class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none bg-slate-50 font-bold text-slate-700 mb-3">
+                <option value="" disabled selected>Seleccione estatus...</option>
+                <option value="Aprobado" class="text-purple-600">🟣 Aprobado (Enviar a Revisión)</option>
+                <option value="Rechazado" class="text-red-600">🔴 Rechazado (OOS)</option>
+            </select>
+            <button id="btnGuardarResultados" onclick="prepararDictamen()"
+                class="w-full bg-slate-800 text-white font-bold py-3.5 rounded-xl shadow-lg hover:bg-slate-900 flex items-center justify-center gap-2">
+                <i class="fas fa-check-double"></i> <span id="btnGuardarText">Dictaminar</span>
+                <div id="btnGuardarLoader"
+                    class="hidden loader rounded-full border-2 border-t-2 border-white/30 h-5 w-5 ml-2"></div>
+            </button>
+        </div>
+    </div>
+</div>
+
+<div id="modalPreparacionOverlay"
+    class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-start justify-center p-4 md:p-8 overflow-y-auto">
+    <div
+        class="bg-white rounded-3xl shadow-2xl w-full max-w-2xl border border-slate-200 relative my-auto overflow-hidden">
+        <div class="px-8 py-5 border-b border-slate-100 bg-slate-800 flex justify-between items-center">
+            <h2 class="text-xl font-bold text-white"><i class="fas fa-flask text-blue-400 mr-2"></i> Preparación de
+                Insumos</h2>
+            <button type="button" onclick="cerrarModalPreparacion()" class="text-slate-300 hover:text-white p-1"><i
+                    class="fas fa-times"></i></button>
+        </div>
+
+        <form id="formPreparacion" onsubmit="handleGuardarPreparacion(event)" class="p-8 space-y-6">
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-2">Tipo de Preparación *</label>
+                    <select id="prepTipo" required onchange="actualizarInterfazCalculadora()"
+                        class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 bg-slate-50">
+                        <option value="" disabled selected>Seleccione...</option>
+                        <option value="Medio Simple">Medio de Cultivo Simple</option>
+                        <option value="Solución Molar">Solución Molar (M)</option>
+                        <option value="Solución Normal">Solución Normal (N)</option>
+                        <option value="% m/v">Porcentual (% m/v)</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-2">Reactivo Base *</label>
+                    <input type="text" id="prepReactivoNombre" list="listaPrepReactivos" required
+                        oninput="seleccionarReactivoEnVivo()"
+                        class="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 focus:ring-2 focus:ring-blue-500"
+                        placeholder="Escriba para buscar...">
+                    <datalist id="listaPrepReactivos"></datalist>
+                    <input type="hidden" id="prepReactivo">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-2">Volumen Final *</label>
+                    <div class="flex">
+                        <input type="number" id="prepVolumen" required min="1" step="any"
+                            oninput="ejecutarCalculoEnVivo()"
+                            class="w-full px-4 py-3 rounded-l-xl border border-slate-200 font-bold text-slate-700">
+                        <span
+                            class="px-4 py-3 rounded-r-xl border border-l-0 border-slate-200 bg-slate-100 text-slate-600 font-bold">mL</span>
+                    </div>
+                </div>
+                <div id="divConcentracion" class="hidden">
+                    <label id="lblConcentracion" class="block text-sm font-semibold text-slate-700 mb-2">Concentración
+                        Deseada *</label>
+                    <input type="number" id="prepConcentracion" min="0.0001" step="any"
+                        oninput="ejecutarCalculoEnVivo()"
+                        class="w-full px-4 py-3 rounded-xl border border-slate-200 font-bold text-slate-700">
+                </div>
+                <div id="divEquivalentes"
+                    class="hidden col-span-1 md:col-span-2 bg-blue-50 p-4 rounded-xl border border-blue-100">
+                    <label class="block text-sm font-bold text-blue-800 mb-2"><i class="fas fa-vial"></i> Valencia /
+                        Equivalentes (Solo Normalidad) *</label>
+                    <input type="number" id="prepEquivalentes" min="1" step="1" value="1"
+                        oninput="ejecutarCalculoEnVivo()"
+                        class="w-full px-4 py-2.5 rounded-lg border border-blue-200 font-bold text-blue-900"
+                        placeholder="Ej. HCl = 1, H2SO4 = 2">
+                </div>
+            </div>
+
+            <div id="prepAlertaCalculo" class="hidden p-4 rounded-xl shadow-inner mt-4">
+                <p class="text-xs font-bold uppercase tracking-wide">Requerimiento Teórico</p>
+                <p id="prepMensajeCalculo" class="text-sm font-medium mt-1"></p>
+                <input type="hidden" id="prepValorTeorico">
+            </div>
+
+            <div class="p-5 bg-emerald-50 rounded-xl border border-emerald-100">
+                <h3 class="text-xs font-bold text-emerald-800 uppercase mb-4"><i class="fas fa-balance-scale mr-1"></i>
+                    Evidencia Analítica</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 mb-2">Cantidad REAL medida *</label>
+                        <div class="flex shadow-sm">
+                            <input type="number" id="prepCantidadReal" required step="any"
+                                class="w-full px-4 py-2.5 rounded-l-lg border border-emerald-200 font-bold">
+                            <span id="prepUnidadReal"
+                                class="px-3 py-2.5 rounded-r-lg border border-l-0 border-emerald-200 bg-emerald-100 text-emerald-800 font-bold">g/mL</span>
+                        </div>
+                    </div>
+                    <div id="divValoracion" class="hidden">
+                        <label class="block text-sm font-semibold text-slate-700 mb-2">Concentración Valorada
+                            (Real)</label>
+                        <input type="number" id="prepConcentracionReal" step="any"
+                            class="w-full px-4 py-2.5 rounded-lg border border-emerald-200">
+                    </div>
+                </div>
+            </div>
+
+            <div id="divControlPH" class="hidden p-5 bg-blue-50 rounded-xl border border-blue-100 mt-4">
+                <h3 class="text-xs font-bold text-blue-800 uppercase mb-4"><i class="fas fa-vial mr-1"></i> Control de
+                    pH (Medios de Cultivo)</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 mb-2">pH Inicial (Pre-Est.)</label>
+                        <input type="number" step="0.01" id="prepPhInicial"
+                            class="w-full px-4 py-2.5 rounded-lg border border-blue-200 bg-white" placeholder="Ej. 7.2">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 mb-2">pH Final (Post-Est.) *</label>
+                        <input type="number" step="0.01" id="prepPhFinal"
+                            class="w-full px-4 py-2.5 rounded-lg border border-blue-200 bg-white" placeholder="Ej. 7.0">
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-6">
+                <label class="block text-sm font-semibold text-slate-700 mb-2">Caducidad Interna (Basada en PNO)
+                    *</label>
+                <input type="date" id="prepCaducidad" required
+                    class="w-full md:w-1/2 px-4 py-3 rounded-xl border border-slate-200 bg-slate-50">
+            </div>
+
+            <div class="pt-5 mt-6 flex gap-3 border-t border-slate-100">
+                <button type="button" onclick="cerrarModalPreparacion()"
+                    class="flex-1 px-4 py-3 rounded-xl font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors">Cancelar</button>
+                <button type="submit" id="btnGuardarPrep"
+                    class="flex-1 bg-slate-800 text-white font-bold py-3 rounded-xl shadow-lg flex justify-center items-center hover:bg-slate-900 transition-colors">
+                    <span id="btnGuardarPrepText">Generar Lote Interno</span>
+                    <div id="btnGuardarPrepLoader"
+                        class="hidden loader rounded-full border-2 border-t-2 border-white/30 h-5 w-5 ml-2"></div>
+                </button>
+            </div>
+
+        </form>
+    </div>
+</div>
+<div id="modalOverlay"
+    class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-40 flex items-center justify-center p-4">
+    <div id="modalContent"
+        class="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden border border-slate-100">
+        <div class="px-8 py-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+            <h2 class="text-xl font-bold text-slate-800">Recepción de Muestra</h2>
+            <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600 p-1"><i
+                    class="fas fa-times"></i></button>
+        </div>
+        <form id="formMuestra" onsubmit="handleRegistroMuestra(event)" class="p-8 space-y-5">
+            <div>
+                <label class="block text-sm font-semibold text-slate-700 mb-2">Producto</label>
+                <input type="text" id="producto" list="listaProductos" autocomplete="off" required
+                    class="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50">
+                <datalist id="listaProductos"></datalist>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div><label class="block text-sm font-semibold text-slate-700 mb-2">Lote Interno</label><input
+                        type="text" id="loteInterno" required
+                        class="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50"></div>
+                <div><label class="block text-sm font-semibold text-slate-700 mb-2">Lote Prov.</label><input type="text"
+                        id="loteProv" class="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50"></div>
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-slate-700 mb-2">Cantidad</label>
+                <div class="flex">
+                    <input type="number" id="cantidad" step="any" required
+                        class="w-full px-4 py-3 rounded-l-xl border border-slate-200 bg-slate-50">
+                    <select id="unidad"
+                        class="px-4 py-3 rounded-r-xl border border-slate-200 bg-slate-100 font-semibold">
+                        <option value="g">g</option>
+                        <option value="mL">mL</option>
+                        <option value="pzas">piezas</option>
+                    </select>
+                </div>
+            </div>
+            <div><label class="block text-sm font-semibold text-slate-700 mb-2">Número de Análisis</label><input
+                    type="text" id="numAnalisis" required
+                    class="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50"></div>
+            <div class="p-4 bg-blue-50/50 rounded-xl border border-blue-100">
+                <label class="flex items-center gap-3 cursor-pointer"><input type="checkbox" id="esEstabilidad"
+                        class="w-5 h-5 text-blue-600 rounded" onchange="toggleEstabilidad()"><span
+                        class="text-sm font-bold text-blue-800">¿Es Estabilidad?</span></label>
+                <div id="divCodEstabilidad" class="hidden mt-4"><label
+                        class="block text-xs font-semibold text-slate-700 mb-1">Código de Estabilidad</label><input
+                        type="text" id="codEstabilidad" class="w-full px-4 py-2.5 rounded-lg border border-slate-200">
+                </div>
+            </div>
+            <div id="modalError" class="hidden text-sm text-red-600 bg-red-50 p-3 rounded-lg"></div>
+            <div class="pt-2 flex gap-3">
+                <button type="button" onclick="closeModal()"
+                    class="flex-1 px-4 py-3 rounded-xl font-semibold bg-slate-100">Cancelar</button>
+                <button type="submit" id="btnGuardar"
+                    class="flex-1 bg-emerald-500 text-white font-bold py-3 rounded-xl flex items-center justify-center"><span
+                        id="btnGuardarText">Registrar</span>
+                    <div id="btnGuardarLoader" class="hidden loader rounded-full border-2 border-t-2 h-5 w-5 ml-2">
+                    </div>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div id="modalNuevoInsumo"
+    class="fixed inset-0 bg-slate-900 bg-opacity-70 z-[55] hidden flex items-center justify-center backdrop-blur-sm">
+    <div class="bg-white rounded-xl shadow-2xl w-full max-w-2xl overflow-hidden">
+        <div class="bg-indigo-700 p-4 text-white flex justify-between items-center">
+            <div class="flex items-center gap-3"><i class="fas fa-flask text-xl"></i>
+                <h3 class="text-lg font-bold">Nuevo Insumo</h3>
+            </div>
+            <button onclick="cerrarModalNuevoInsumo()" class="hover:text-indigo-200"><i
+                    class="fas fa-times text-xl"></i></button>
+        </div>
+        <form onsubmit="handleAltaInsumo(event)" class="p-6">
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1">Categoría *</label>
+                    <select id="insumoCategoria" required
+                        class="w-full border border-slate-200 rounded-lg p-2.5 text-sm bg-slate-50">
+                        <option value="" disabled selected>Seleccione...</option>
+                        <option value="Sales">Sales</option>
+                        <option value="Acidos">Ácidos</option>
+                        <option value="Bases">Bases</option>
+                        <option value="Solventes">Solventes (S)</option>
+                        <option value="Estándares">Estándar (SRP)</option>
+                        <option value="Buffers">Buffers</option>
+                        <option value="Medios de Cultivo">Medios de Cultivo</option>
+                        <option value="Otros">Otros</option>
+                    </select>
+                </div>
+                <div><label class="block text-xs font-bold text-slate-600 mb-1">Nombre *</label><input type="text"
+                        id="insumoNombre" required class="w-full border border-slate-200 rounded-lg p-2.5 text-sm">
+                </div>
+                <div><label class="block text-xs font-bold text-slate-600 mb-1">Proveedor *</label><input type="text"
+                        id="insumoProveedor" required class="w-full border border-slate-200 rounded-lg p-2.5 text-sm">
+                </div>
+                <div><label class="block text-xs font-bold text-slate-600 mb-1">Lote *</label><input type="text"
+                        id="insumoLote" required class="w-full border border-slate-200 rounded-lg p-2.5 text-sm"></div>
+                <div><label class="block text-xs font-bold text-slate-600 mb-1">Caducidad *</label><input type="date"
+                        id="insumoCaducidad" required class="w-full border border-slate-200 rounded-lg p-2.5 text-sm">
+                </div>
+                <div><label class="block text-xs font-bold text-slate-600 mb-1">Presentación</label><input type="text"
+                        id="insumoPresentacion" class="w-full border border-slate-200 rounded-lg p-2.5 text-sm"></div>
+                <div><label class="block text-xs font-bold text-slate-600 mb-1">Peso Molecular (g/mol)</label><input
+                        type="number" step="any" id="insumoPM"
+                        class="w-full border border-slate-200 rounded-lg p-2.5 text-sm"></div>
+                <div><label class="block text-xs font-bold text-slate-600 mb-1">Pureza (%)</label><input type="number"
+                        step="any" id="insumoPureza" class="w-full border border-slate-200 rounded-lg p-2.5 text-sm">
+                </div>
+            </div>
+            <div class="flex justify-end gap-3 mt-8 border-t pt-6">
+                <button type="button" onclick="cerrarModalNuevoInsumo()"
+                    class="px-6 py-2.5 text-slate-500 font-bold bg-slate-100 rounded-lg">Cancelar</button>
+                <button type="submit" id="btnGuardarInsumo"
+                    class="bg-indigo-600 text-white px-8 py-2.5 rounded-lg font-bold flex items-center gap-2"><span
+                        id="btnGuardarInsumoText">Registrar</span>
+                    <div id="btnGuardarInsumoLoader"
+                        class="hidden loader rounded-full border-2 border-white/30 h-4 w-4"></div>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div id="modalCertificadoOverlay"
+    class="hidden fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-start justify-center p-4 md:p-8 overflow-y-auto">
+    <div id="modalCertificadoContent"
+        class="bg-white shadow-2xl w-full max-w-4xl border border-slate-200 relative my-auto">
+        <div class="bg-slate-800 p-4 flex justify-between items-center no-print sticky top-0 z-10">
+            <h3 class="text-white font-bold"><i class="fas fa-file-pdf text-blue-400"></i> Vista Previa CoA</h3>
+            <div class="flex gap-3">
+                <button onclick="cerrarCertificado()"
+                    class="px-4 py-2 bg-slate-700 text-white rounded-lg">Cerrar</button>
+                <button onclick="exportarPDFOficial()" class="px-4 py-2 bg-blue-600 text-white rounded-lg font-bold"><i
+                        class="fas fa-download"></i> PDF</button>
+            </div>
+        </div>
+        <div id="areaImpresion" class="bg-white p-10 md:p-12 text-black flex flex-col mx-auto"
+            style="font-family: Arial, Helvetica, sans-serif; box-sizing: border-box;">
+            <div class="text-center mb-8 border-b-2 border-green-800 pb-5 shrink-0">
+                <div style="text-align: center; margin-bottom: 10px;">
+                    <img id="logoCoA" src="" alt="" style="max-height: 60px; width: auto;">
+                </div>
+
+                <h1 class="text-2xl font-extrabold text-green-900 mb-1">SORIA NATURAL, S. A. DE C. V.</h1>
+                <h2 id="coaTipoCertificado" class="text-lg font-bold">CERTIFICADO DE ANÁLISIS</h2>
+            </div>
+            <div class="grid grid-cols-2 gap-x-8 gap-y-4 mb-8 text-sm w-full shrink-0">
+                <div class="col-span-2 flex"><span class="font-bold mr-2">Nombre:</span> <span id="coaProducto"
+                        class="border-b border-black flex-1 text-center"></span></div>
+                <div class="flex"><span class="font-bold mr-2">No. Lote:</span> <span id="coaLote"
+                        class="border-b border-black flex-1 text-center"></span></div>
+                <div class="col-span-2 flex"><span class="font-bold mr-2">Presentación:</span> <span
+                        id="coaPresentacion" class="border-b border-black flex-1 text-center"></span></div>
+                <div class="flex"><span class="font-bold mr-2">F. Muestreo:</span> <span id="coaFechaMuestreo"
+                        class="border-b border-black flex-1 text-center"></span></div>
+                <div class="flex"><span class="font-bold mr-2">F. Análisis:</span> <span id="coaFechaAnalisis"
+                        class="border-b border-black flex-1 text-center"></span></div>
+                <div class="flex"><span class="font-bold mr-2">Análisis:</span> <span id="coaNumAnalisis"
+                        class="border-b border-black flex-1 text-center"></span></div>
+                <div class="flex items-center">
+                    <span class="font-bold mr-2">Caducidad:</span>
+                    <span id="coaCaducidadText" class="border-b border-black flex-1 text-center font-medium"></span>
+                </div>
+            </div>
+            <table class="w-full text-sm mb-8 border-collapse border border-black">
+                <thead class="bg-gray-100">
+                    <tr>
+                        <th class="border border-black px-3 py-2 w-1/3">Análisis</th>
+                        <th class="border border-black px-3 py-2 w-1/3">Especificación</th>
+                        <th class="border border-black px-3 py-2 w-1/3">Resultado</th>
+                    </tr>
+                </thead>
+                <tbody id="coaTablaResultados"></tbody>
+            </table>
+            <div class="text-sm space-y-4 mb-10">
+                <p>Se hace constar que el análisis practicado al <span id="coaTextoProd" class="font-bold"></span>,
+                    llena los estándares requeridos.</p>
+                <p class="font-bold">Dictamen: <span id="coaDictamen"
+                        class="font-normal border-b border-black px-2"></span></p>
+            </div>
+            <div class="grid grid-cols-2 gap-x-10 gap-y-8 mt-auto pt-6">
+                <div class="text-center">
+                    <div class="border-b border-black w-56 mx-auto mb-1 h-6 relative"><span id="coaFirmaFQ"
+                            class="absolute bottom-0 left-0 w-full text-blue-800 italic text-[11px]"></span></div>
+                    <p class="text-[11px] font-bold">Analista Fisicoquímico</p>
+                </div>
+                <div class="text-center">
+                    <div class="border-b border-black w-56 mx-auto mb-1 h-6 relative"><span id="coaFirmaMB"
+                            class="absolute bottom-0 left-0 w-full text-blue-800 italic text-[11px]"></span></div>
+                    <p class="text-[11px] font-bold">Analista Microbiológico</p>
+                </div>
+                <div class="text-center">
+                    <div class="border-b border-black w-56 mx-auto mb-1 h-6 relative"><span id="coaFirmaJefe"
+                            class="absolute bottom-0 left-0 w-full text-blue-800 italic text-[11px]"></span></div>
+                    <p class="text-[11px] font-bold">Jefe de Control de Calidad</p>
+                </div>
+                <div class="text-center">
+                    <div class="border-b border-black w-56 mx-auto mb-1 h-6 relative"><span id="coaFirmaRS"
+                            class="absolute bottom-0 left-0 w-full text-blue-800 italic text-[11px]"></span></div>
+                    <p class="text-[11px] font-bold">Responsable Sanitario</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="modalEstatusInventario"
+    class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-2xl w-full max-w-md p-8 shadow-2xl border border-slate-200">
+        <h3 class="text-lg font-bold text-slate-800 mb-2 border-b border-slate-100 pb-3"><i
+                class="fas fa-exchange-alt text-amber-500 mr-2"></i> Cambiar Estatus / Dar de Baja</h3>
+        <p class="text-sm text-slate-500 mb-4">Lote seleccionado: <strong id="lblLoteCambioEst"
+                class="text-blue-700"></strong></p>
+        <div class="space-y-4">
+            <div>
+                <label class="block text-sm font-semibold text-slate-700 mb-1">Nuevo Estatus *</label>
+                <select id="selectNuevoEstatusInv"
+                    class="w-full border border-slate-200 rounded-lg p-2.5 focus:ring-2 focus:ring-amber-500 bg-slate-50 outline-none font-bold">
+                    <option value="Liberado" class="text-emerald-600">✅ Liberado / Aprobado</option>
+                    <option value="Cuarentena" class="text-amber-600">⏳ En Cuarentena</option>
+                    <option value="Agotado" class="text-slate-600">🗑️ Agotado / Vacío (Baja)</option>
+                    <option value="Rechazado" class="text-red-600">❌ Rechazado / Contaminado (Baja)</option>
+                    <option value="Caducado" class="text-red-600">⚠️ Caducado (Baja)</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-slate-700 mb-1">Justificación del Movimiento (CFR 21)
+                    *</label>
+                <input type="text" id="inputJustificacionInv" required
+                    class="w-full border border-slate-200 rounded-lg p-2.5 focus:ring-2 focus:ring-amber-500 outline-none"
+                    placeholder="Ej. Promoción de crecimiento cumple, se vació el frasco...">
+            </div>
+            <div class="flex gap-3 pt-2">
+                <button onclick="document.getElementById('modalEstatusInventario').classList.add('hidden')"
+                    class="flex-1 py-2 text-slate-500 bg-slate-100 hover:bg-slate-200 rounded-xl font-bold transition-colors">Cancelar</button>
+                <button onclick="procederFirmaInventario()"
+                    class="flex-1 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-bold shadow-md transition-colors flex items-center justify-center gap-2">
+                    <i class="fas fa-fingerprint"></i> Firmar Cambio
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="modalCepa"
+    class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-2xl w-full max-w-md p-8 shadow-2xl border border-slate-200">
+        <h3 id="tituloModalCepa" class="text-lg font-bold text-slate-800 mb-2 border-b border-slate-100 pb-3">Gestión de
+            Cepa</h3>
+        <p class="text-sm text-slate-500 mb-4">Cepa: <strong id="lblNombreCepa" class="text-blue-700 italic"></strong>
+            (Tubo: <span id="lblAtccCepa" class="font-bold"></span>)</p>
+        <div class="space-y-4">
+            <div id="divCepaAbreviatura" class="hidden">
+                <label class="block text-sm font-semibold text-slate-700 mb-1">Abreviatura Base (Ej. CEC) *</label>
+                <input type="text" id="inputCepaAbreviatura"
+                    class="w-full border border-slate-200 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 bg-blue-50 outline-none font-bold uppercase">
+            </div>
+            <div id="divCepaPaseInicial" class="hidden">
+                <label class="block text-sm font-semibold text-slate-700 mb-1">Pase según Certificado de Origen
+                    *</label>
+                <input type="number" id="inputCepaPaseInicial" min="1" max="5"
+                    class="w-full border border-slate-200 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 outline-none"
+                    placeholder="Ej. 2 o 3">
+            </div>
+            <div id="divCepaLetraRama" class="hidden">
+                <label class="block text-sm font-semibold text-slate-700 mb-1">Letra de la Rama (Ej. A, B, C...)
+                    *</label>
+                <input type="text" id="inputCepaLetra" maxlength="1"
+                    class="w-full border border-slate-200 rounded-lg p-2.5 focus:ring-2 focus:ring-emerald-500 outline-none font-bold uppercase bg-emerald-50 text-center text-lg"
+                    placeholder="A">
+            </div>
+            <div id="divCepaCantTrabajo" class="hidden">
+                <label class="block text-sm font-semibold text-slate-700 mb-1">Cantidad de Tubos de Trabajo (L)
+                    *</label>
+                <input type="number" id="inputCepaCantL" min="1" max="10" value="3"
+                    class="w-full border border-slate-200 rounded-lg p-2.5 focus:ring-2 focus:ring-emerald-500 outline-none">
+                <p class="text-xs text-slate-500 mt-1 font-medium"><i class="fas fa-info-circle text-blue-500"></i> Se
+                    generará automáticamente 1 tubo adicional de Reserva (R).</p>
+            </div>
+            <div id="divCepaCaducidad" class="hidden">
+                <label class="block text-sm font-semibold text-slate-700 mb-1">Fecha de Caducidad de la Siembra
+                    *</label>
+                <input type="date" id="inputCepaCaducidad"
+                    class="w-full border border-slate-200 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 outline-none">
+            </div>
+            <div id="divCepaJustificacion" class="hidden">
+                <label class="block text-sm font-semibold text-slate-700 mb-1">Justificación (Destrucción / Uso)
+                    *</label>
+                <input type="text" id="inputCepaJustificacion"
+                    class="w-full border border-slate-200 rounded-lg p-2.5 focus:ring-2 focus:ring-red-500 outline-none"
+                    placeholder="Ej. Promoción de crecimiento, contaminación, caducidad...">
+            </div>
+            <div class="bg-slate-800 p-4 rounded-xl mt-4">
+                <p class="text-xs text-slate-300 mb-2"><i class="fas fa-fingerprint text-blue-400 mr-1"></i> Firma
+                    Electrónica (CFR 21)</p>
+                <input type="password" id="inputFirmaCepa" placeholder="Contraseña de usuario"
+                    onkeyup="if(event.key === 'Enter') procesarFirmaCepa()"
+                    class="w-full border-none rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 outline-none text-sm">
+            </div>
+            <div class="flex gap-3 pt-2">
+                <button onclick="document.getElementById('modalCepa').classList.add('hidden')"
+                    class="flex-1 py-2 text-slate-500 bg-slate-100 hover:bg-slate-200 rounded-xl font-bold transition-colors">Cancelar</button>
+                <button id="btnGuardarCepa" onclick="procesarFirmaCepa()"
+                    class="flex-1 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-md transition-colors flex items-center justify-center gap-2">
+                    <span id="btnGuardarCepaText">Firmar</span>
+                    <div id="btnGuardarCepaLoader"
+                        class="hidden loader rounded-full border-2 border-t-2 border-white/30 h-4 w-4 ml-2"></div>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="modalAltaEquipo"
+    class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-2xl w-full max-w-lg p-8 shadow-2xl border border-slate-200">
+        <div class="flex justify-between items-center border-b border-slate-100 pb-4 mb-5">
+            <h2 class="text-xl font-bold text-slate-800"><i class="fas fa-plus-circle text-blue-600 mr-2"></i> Alta de
+                Nuevo Equipo</h2>
+            <button onclick="document.getElementById('modalAltaEquipo').classList.add('hidden')"
+                class="text-slate-400 hover:text-slate-600"><i class="fas fa-times text-xl"></i></button>
+        </div>
+        <form onsubmit="handleAltaEquipo(event)" class="space-y-4">
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1">Código Interno *</label>
+                    <input type="text" id="altaEqCodigo" required
+                        class="w-full border border-slate-200 rounded p-2.5 focus:ring-2 focus:ring-blue-500 font-mono font-bold uppercase"
+                        placeholder="Ej. INS-LAB-100">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1">Nombre del Equipo *</label>
+                    <input type="text" id="altaEqNombre" required
+                        class="w-full border border-slate-200 rounded p-2.5 focus:ring-2 focus:ring-blue-500"
+                        placeholder="Ej. Balanza Analítica">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1">Ubicación / Área *</label>
+                    <input type="text" id="altaEqUbicacion" required
+                        class="w-full border border-slate-200 rounded p-2.5 focus:ring-2 focus:ring-blue-500 uppercase"
+                        placeholder="Ej. CUARTO DE PESADAS">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1">Proveedor de Servicio *</label>
+                    <input type="text" id="altaEqProveedor" required
+                        class="w-full border border-slate-200 rounded p-2.5 focus:ring-2 focus:ring-blue-500"
+                        placeholder="Ej. Yndra, Metrología SA...">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1">Frecuencia (Meses) *</label>
+                    <input type="number" id="altaEqFrecuencia" required min="1" max="60" value="12"
+                        class="w-full border border-slate-200 rounded p-2.5 font-bold text-blue-700 bg-blue-50 text-center">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1">Última Calibración *</label>
+                    <input type="date" id="altaEqUltima" required
+                        class="w-full border border-slate-200 rounded p-2.5 focus:ring-2 focus:ring-blue-500">
+                </div>
+            </div>
+            <div class="flex justify-end gap-3 pt-4 border-t border-slate-100 mt-4">
+                <button type="button" onclick="document.getElementById('modalAltaEquipo').classList.add('hidden')"
+                    class="px-5 py-2.5 bg-slate-100 text-slate-600 font-bold rounded-xl hover:bg-slate-200 transition-colors">Cancelar</button>
+                <button type="submit" id="btnGuardarAltaEq"
+                    class="px-5 py-2.5 bg-blue-600 text-white font-bold rounded-xl shadow-md hover:bg-blue-700 transition-colors flex items-center gap-2">
+                    <i class="fas fa-save"></i> <span id="btnGuardarAltaEqText">Guardar Equipo</span>
+                    <div id="btnGuardarAltaEqLoader"
+                        class="hidden loader rounded-full border-2 border-t-2 border-white/30 h-4 w-4 ml-2"></div>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div id="modalCalibracion"
+    class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-2xl w-full max-w-md p-8 shadow-2xl border border-slate-200">
+        <h3 class="text-lg font-bold text-slate-800 mb-2 border-b border-slate-100 pb-3"><i
+                class="fas fa-tools text-blue-600 mr-2"></i> Registrar Servicio</h3>
+
+        <p class="text-sm text-slate-500 mb-4">Equipo: <strong id="lblEquipoCal" class="text-blue-700"></strong> (<span
+                id="lblCodigoCal" class="font-mono font-bold"></span>)</p>
+
+        <form onsubmit="procesarFirmaCalibracion(event)" class="space-y-4">
+            <div>
+                <label for="inputFechaCal" class="block text-sm font-semibold text-slate-700 mb-1">Fecha Real de
+                    Servicio / Certificado *</label>
+                <input type="date" id="inputFechaCal" required
+                    class="w-full border border-slate-200 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 outline-none font-bold">
+            </div>
+            <div>
+                <label for="inputNotasCal" class="block text-sm font-semibold text-slate-700 mb-1">Folio del Certificado
+                    / Notas BPF *</label>
+                <input type="text" id="inputNotasCal" required
+                    class="w-full border border-slate-200 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 outline-none text-sm"
+                    placeholder="Ej. Certificado YND-402, calibración exitosa">
+            </div>
+            <div class="bg-slate-800 p-4 rounded-xl mt-4">
+                <label for="inputFirmaCal" class="text-xs text-slate-300 mb-2 block"><i
+                        class="fas fa-fingerprint text-blue-400 mr-1"></i> Firma Electrónica (CFR 21)</label>
+                <input type="password" id="inputFirmaCal" required placeholder="Contraseña de usuario"
+                    class="w-full border-none rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 outline-none text-sm">
+            </div>
+            <div class="flex gap-3 pt-2">
+                <button type="button" onclick="document.getElementById('modalCalibracion').classList.add('hidden')"
+                    class="flex-1 py-2 text-slate-500 bg-slate-100 hover:bg-slate-200 rounded-xl font-bold transition-colors">Cancelar</button>
+                <button type="submit" id="btnGuardarCal"
+                    class="flex-1 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-md transition-colors flex items-center justify-center gap-2">
+                    <span id="btnGuardarCalText">Firmar Calibración</span>
+                    <div id="btnGuardarCalLoader"
+                        class="hidden loader rounded-full border-2 border-t-2 border-white/30 h-4 w-4 ml-2"></div>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div id="modalUsuario"
+    class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-2xl w-full max-w-lg p-8 shadow-2xl border border-slate-200">
+        <div class="flex justify-between items-center border-b border-slate-100 pb-4 mb-6">
+            <h2 class="text-xl font-bold text-slate-800"><i class="fas fa-user-edit text-blue-600 mr-2"></i> Gestión de
+                Usuario</h2>
+            <button onclick="cerrarModalUsuario()" class="text-slate-400 hover:text-slate-600"><i
+                    class="fas fa-times text-xl"></i></button>
+        </div>
+        <form id="formUsuario" onsubmit="guardarUsuarioBD(event)" class="space-y-4">
+            <input type="hidden" id="formUserId">
+            <div class="grid grid-cols-2 gap-4">
+                <div class="col-span-2">
+                    <label class="block text-xs font-bold text-slate-600 mb-1">Nombre Completo *</label>
+                    <input type="text" id="formUserNombre" required
+                        class="w-full border border-slate-200 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1">Usuario (Login) *</label>
+                    <input type="text" id="formUserLogin" required
+                        class="w-full border border-slate-200 rounded-lg p-2.5 text-sm font-mono focus:ring-2 focus:ring-blue-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1">Rol *</label>
+                    <select id="formUserRol" required
+                        class="w-full border border-slate-200 rounded-lg p-2.5 text-sm bg-slate-50 focus:ring-2 focus:ring-blue-500 outline-none">
+                        <option value="Analista">Analista</option>
+                        <option value="Supervisor">Supervisor</option>
+                        <option value="Jefe de Control de Calidad">Jefe de Control de Calidad</option>
+                        <option value="Responsable Sanitario">Responsable Sanitario</option>
+                        <option value="Gerente">Gerente</option>
+                        <option value="Administrador">Administrador</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1">Área</label>
+                    <input type="text" id="formUserArea"
+                        class="w-full border border-slate-200 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                        placeholder="Ej. Microbiología">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1">Estatus *</label>
+                    <select id="formUserEstatus"
+                        class="w-full border border-slate-200 rounded-lg p-2.5 text-sm bg-slate-50 focus:ring-2 focus:ring-blue-500 outline-none">
+                        <option value="Activo">Activo</option>
+                        <option value="Bloqueado">Bloqueado</option>
+                    </select>
+                </div>
+            </div>
+            <div class="bg-amber-50 border border-amber-200 rounded-xl p-4">
+                <label class="block text-xs font-bold text-amber-800 mb-2"><i class="fas fa-key mr-1"></i> Clave
+                    Temporal (solo nuevos o reseteo)</label>
+                <div class="flex gap-2">
+                    <input type="text" id="hashOutput" readonly
+                        class="flex-1 border border-amber-200 rounded-lg p-2.5 text-xs font-mono bg-white"
+                        placeholder="Generada automáticamente">
+                    <button type="button" onclick="generarClaveTemporal()"
+                        class="bg-amber-500 text-white px-3 py-2 rounded-lg text-xs font-bold whitespace-nowrap hover:bg-amber-600 transition-colors">
+                        <i class="fas fa-dice mr-1"></i> Generar
+                    </button>
+                </div>
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-slate-600 mb-1">Justificación BPF (mínimo 10 caracteres)
+                    *</label>
+                <input type="text" id="formUserJustificacion" required minlength="10"
+                    class="w-full border border-slate-200 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                    placeholder="Ej. Alta de nuevo analista para área de microbiología">
+            </div>
+            <div class="flex justify-end gap-3 pt-2 border-t border-slate-100">
+                <button type="button" onclick="cerrarModalUsuario()"
+                    class="px-5 py-2.5 bg-slate-100 text-slate-600 font-bold rounded-xl hover:bg-slate-200 transition-colors">Cancelar</button>
+                <button type="submit" id="btnGuardarUser"
+                    class="px-6 py-2.5 bg-blue-600 text-white font-bold rounded-xl shadow-md hover:bg-blue-700 transition-colors flex items-center gap-2">
+                    <i class="fas fa-save"></i>
+                    <span id="btnGuardarUserText">Guardar Usuario</span>
+                    <div id="btnGuardarUserLoader"
+                        class="hidden loader rounded-full border-2 border-t-2 border-white/30 h-4 w-4"></div>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div id="modalAltaCepa"
+    class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-2xl w-full max-w-md p-8 shadow-2xl border border-slate-200">
+        <div class="flex justify-between items-center border-b border-slate-100 pb-4 mb-5">
+            <h2 class="text-xl font-bold text-slate-800"><i class="fas fa-vial text-blue-600 mr-2"></i> Registrar Cepa /
+                Liofilizado</h2>
+            <button onclick="document.getElementById('modalAltaCepa').classList.add('hidden')"
+                class="text-slate-400 hover:text-slate-600"><i class="fas fa-times text-xl"></i></button>
+        </div>
+        <form onsubmit="handleAltaCepa(event)" class="space-y-4">
+            <div class="flex gap-4 mb-2">
+                <label class="flex items-center gap-2 cursor-pointer text-sm font-semibold">
+                    <input type="radio" name="tipoCepa" value="ATCC" checked onchange="toggleInputsCepa(this.value)"
+                        class="text-blue-600"> ATCC / Comercial
+                </label>
+                <label class="flex items-center gap-2 cursor-pointer text-sm font-semibold">
+                    <input type="radio" name="tipoCepa" value="Nativo" onchange="toggleInputsCepa(this.value)"
+                        class="text-blue-600"> Nativo / In-house
+                </label>
+            </div>
+            <div>
+                <label id="lblIdentificadorCepa" class="block text-xs font-bold text-slate-600 mb-1">Número ATCC
+                    *</label>
+                <input type="text" id="altaCepaATCC" required
+                    class="w-full border border-slate-200 rounded-lg p-2.5 text-sm font-mono focus:ring-2 focus:ring-blue-500 outline-none"
+                    placeholder="Ej. 8739">
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-slate-600 mb-1">Microorganismo *</label>
+                <input type="text" id="altaCepaMicro" required
+                    class="w-full border border-slate-200 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                    placeholder="Ej. Escherichia coli">
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label id="lblLoteCepa" class="block text-xs font-bold text-slate-600 mb-1">Lote Proveedor *</label>
+                    <input type="text" id="altaCepaLoteProv" required
+                        class="w-full border border-slate-200 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1">Cantidad (sticks) *</label>
+                    <input type="number" id="altaCepaCantidad" required min="1" value="1"
+                        class="w-full border border-slate-200 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1">Pase según COA</label>
+                    <input type="number" id="altaCepaPase" min="1" value="2"
+                        class="w-full border border-slate-200 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1">Caducidad Proveedor *</label>
+                    <input type="date" id="altaCepaCadProv" required
+                        class="w-full border border-slate-200 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                </div>
+            </div>
+            <div class="flex justify-end gap-3 pt-2 border-t border-slate-100">
+                <button type="button" onclick="document.getElementById('modalAltaCepa').classList.add('hidden')"
+                    class="px-5 py-2.5 bg-slate-100 text-slate-600 font-bold rounded-xl hover:bg-slate-200">Cancelar</button>
+                <button type="submit"
+                    class="px-6 py-2.5 bg-blue-600 text-white font-bold rounded-xl shadow-md hover:bg-blue-700 flex items-center gap-2">
+                    <i class="fas fa-save"></i> Registrar
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div id="modalMantenimiento"
+    class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-2xl w-full max-w-md p-8 shadow-2xl border border-slate-200">
+        <h3 class="text-lg font-bold text-slate-800 mb-4 border-b pb-3"><i class="fas fa-wrench text-blue-600 mr-2"></i>
+            Registrar Intervención</h3>
+        <form onsubmit="handleGuardarMantenimiento(event)" class="space-y-4">
+            <input type="hidden" id="mantEquipoCodigo">
+            <div>
+                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Tipo de Servicio</label>
+                <select id="mantTipo" required
+                    class="w-full border border-slate-200 rounded-lg p-2.5 bg-slate-50 font-bold">
+                    <option value="Preventivo">Preventivo (Actualiza Programa)</option>
+                    <option value="Correctivo">Correctivo (Reparación)</option>
+                    <option value="Calibración">Calibración Externa</option>
+                    <option value="Limpieza">Limpieza Profunda / Sanitización</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Descripción del Trabajo</label>
+                <textarea id="mantDescripcion" required
+                    class="w-full border border-slate-200 rounded-lg p-2.5 text-sm h-24"
+                    placeholder="Detalle lo realizado..."></textarea>
+            </div>
+            <div class="bg-slate-800 p-4 rounded-xl">
+                <label class="text-xs text-slate-300 mb-2 block"><i class="fas fa-fingerprint text-blue-400 mr-1"></i>
+                    Firma Digital (CFR 21)</label>
+                <input type="password" id="mantFirma" required placeholder="Contraseña para confirmar"
+                    class="w-full rounded-lg p-2.5 text-sm outline-none">
+            </div>
+            <div class="flex gap-3 pt-2">
+                <button type="button" onclick="document.getElementById('modalMantenimiento').classList.add('hidden')"
+                    class="flex-1 py-2 text-slate-500 bg-slate-100 rounded-xl font-bold">Cancelar</button>
+                <button type="submit"
+                    class="flex-1 py-2 bg-blue-600 text-white rounded-xl font-bold shadow-md hover:bg-blue-700">Registrar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div id="modalHistorialEquipos"
+    class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-3xl w-full max-w-2xl shadow-2xl overflow-hidden">
+        <div class="bg-slate-800 p-5 text-white flex justify-between items-center">
+            <h3 class="font-bold flex items-center gap-2"><i class="fas fa-history text-blue-400"></i> Historial: <span
+                    id="historialNombreEq" class="text-blue-200"></span></h3>
+            <button onclick="document.getElementById('modalHistorialEquipos').classList.add('hidden')"
+                class="text-slate-300 hover:text-white"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="p-6 max-h-[500px] overflow-y-auto bg-slate-50">
+            <table class="w-full text-xs text-left">
+                <thead class="text-slate-400 uppercase font-bold border-b">
+                    <tr>
+                        <th class="py-2">Fecha</th>
+                        <th class="py-2">Tipo</th>
+                        <th class="py-2">Responsable</th>
+                        <th class="py-2">Descripción</th>
+                    </tr>
+                </thead>
+                <tbody id="historialEquiposBody" class="divide-y divide-slate-200">
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

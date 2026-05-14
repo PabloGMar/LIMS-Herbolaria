@@ -1,0 +1,116 @@
+/* 
+   LIMS HERBOLARIA - DESIGN SYSTEM (STANDALONE)
+   Glassmorphism & Premium UI 
+*/
+
+:root {
+    --primary: #2563eb;
+    --primary-hover: #1d4ed8;
+    --success: #10b981;
+    --warning: #f59e0b;
+    --danger: #ef4444;
+    --slate-50: #f8fafc;
+    --slate-100: #f1f5f9;
+    --slate-200: #e2e8f0;
+    --slate-800: #1e293b;
+    --glass: rgba(255, 255, 255, 0.85);
+}
+
+* {
+    font-family: 'Inter', sans-serif;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+body {
+    background: radial-gradient(circle at top right, #dbeafe, #f8fafc, #f0fdf4);
+    color: var(--slate-800);
+}
+
+.glass-card {
+    background: var(--glass);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
+}
+
+.nav-btn {
+    @apply w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold text-slate-500 hover:bg-slate-50 transition-all;
+}
+.nav-btn.active {
+    @apply bg-blue-600 text-white shadow-xl shadow-blue-100;
+}
+
+.loader {
+    border: 2px solid #f3f3f3;
+    border-top: 2px solid var(--primary);
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.animate-fade-in {
+    animation: fadeIn 0.4s ease-out forwards;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-slide-in {
+    animation: slideIn 0.3s ease-out forwards;
+}
+
+@keyframes slideIn {
+    from { transform: translateX(100%); }
+    to { transform: translateX(0); }
+}
+
+/* Tablas Modernas */
+.table-container {
+    @apply bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden;
+}
+
+th {
+    @apply px-6 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400 bg-slate-50/50;
+    letter-spacing: 0.1em;
+}
+
+tbody tr {
+    @apply border-b border-slate-50;
+}
+
+tbody tr:hover {
+    background-color: rgba(37, 99, 235, 0.02);
+}
+
+/* Botones y Inputs */
+.btn-primary {
+    @apply bg-blue-600 text-white px-8 py-4 rounded-2xl font-bold shadow-xl shadow-blue-200 hover:bg-blue-700 hover:-translate-y-0.5 transition-all flex items-center justify-center gap-3;
+}
+
+.form-input {
+    @apply w-full px-5 py-4 rounded-2xl border border-slate-200 focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all bg-slate-50/50;
+}
+
+.status-pill {
+    @apply px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-tight;
+}
+
+.tab-btn {
+    @apply pb-3 px-4 font-black text-sm text-slate-400 border-b-4 border-transparent transition-all;
+}
+.tab-btn.active {
+    @apply text-blue-600 border-blue-600;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+    display: none;
+}

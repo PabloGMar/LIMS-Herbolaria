@@ -1,0 +1,19 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "chrome",
+            "request": "launch",
+            "name": "🚀 Iniciar LIMS Standalone (Local)",
+            "file": "${workspaceFolder}/Index.html",
+            "webRoot": "${workspaceFolder}"
+        },
+        {
+            "type": "chrome",
+            "request": "launch",
+            "name": "🌐 Abrir Versión Google (Backup)",
+            "url": "https://script.google.com/macros/s/AKfycbz41gbMWymn0H9ihhWxtRBIyH64GpDYu8nGgPgGEZlSdO9ZvVvDXoEpBxN_0fagHGei/exec",
+            "webRoot": "${workspaceFolder}"
+        }
+    ]
+}
