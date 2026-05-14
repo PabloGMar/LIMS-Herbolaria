@@ -337,6 +337,11 @@ const LIMS = {
     async obtenerMuestrasDashboard() {
         const { data, error } = await sb.from('muestras').select('*').order('fecha_ingreso', { ascending: false });
         if (error) throw error;
+        return data.map(m => ({
+            loteInterno: m.lote_interno,
+            producto: m.producto,
+            estatus: m.estatus,
+            fechaIngreso: m.fecha_ingreso
         }));
     },
 
