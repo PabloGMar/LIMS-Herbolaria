@@ -163,7 +163,8 @@ const LIMS = {
         let valStr = String(valor).trim();
         let specStr = String(especificacion).trim().toLowerCase();
 
-        // 1. Cualitativos Directos
+        // 1. Cualitativos Directos / Coincidencia Exacta
+        if (valStr.toLowerCase() === specStr) return 'Cumple';
         if (valStr.toLowerCase() === 'cumple' || valStr.toLowerCase().includes('cumple con la prueba')) return 'Cumple';
         if (valStr.toLowerCase() === 'no cumple' || valStr.toLowerCase() === 'oos') return 'OOS';
 
@@ -176,7 +177,7 @@ const LIMS = {
         // 3. Evaluación Numérica / Rangos
         let valNum = parseFloat(valStr.replace(/,/g, '').replace(/[<>≤≥=]/g, ''));
         if (isNaN(valNum)) {
-            // Si no es numérico, comparación de texto simple
+            // Si no es numérico, ya comparamos arriba, pero por seguridad:
             return specStr.includes(valStr.toLowerCase()) ? 'Cumple' : 'OOS';
         }
 
