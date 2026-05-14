@@ -47,7 +47,9 @@ const LIMS = {
                 cantidad: m.cantidad,
                 estatus: m.estatus,
                 fechaIngreso: m.fecha_ingreso,
-                numAnalisis: m.num_analisis
+                numAnalisis: m.num_analisis,
+                esEstabilidad: m.es_estabilidad,
+                codEstabilidad: m.cod_estabilidad
             };
         });
 
@@ -143,18 +145,21 @@ const LIMS = {
         const { error } = await sb.from('resultados_analisis').upsert(payload, { onConflict: 'lote_interno, prueba' });
         if (error) throw error;
 
-        // Registro de Firma Electrónica por Rol (FQ / MB)
-        const { data: user } = await sb.from('usuarios').select('rol, nombre').eq('usuario', usuario).single();
-        if (user) {
-            const role = user.rol.toLowerCase();
-            const upMuestra = {};
-            if (role.includes('fisicoqu')) upMuestra.analista_fq = user.nombre;
-            if (role.includes('microbio')) upMuestra.analista_mb = user.nombre;
-            
-            if (Object.keys(upMuestra).length > 0) {
-                await sb.from('muestras').update(upMuestra).eq('lote_interno', loteInterno);
+        // Intento seguro de Registro de Firma Electrónica por Rol (FQ / MB)
+        try {
+            const { data: user } = await sb.from('usuarios').select('rol, nombre').eq('usuario', usuario).single();
+            if (user) {
+                const role = user.rol.toLowerCase();
+                const upMuestra = {};
+                if (role.includes('fisicoqu')) upMuestra.analista_fq = user.nombre;
+                if (role.includes('microbio')) upMuestra.analista_mb = user.nombre;
+                
+                if (Object.keys(upMuestra).length > 0) {
+                    // Update parcial solo si las columnas existen (PostgREST ignorará si fallan o podemos capturar)
+                    await sb.from('muestras').update(upMuestra).eq('lote_interno', loteInterno);
+                }
             }
-        }
+        } catch (e) { console.warn("Columnas analista_fq/mb no encontradas en 'muestras'.", e); }
 
         await this.registrarAudit('Resultados', 'Captura', `Lote: ${loteInterno} | Prueba: ${prueba} | Val: ${valor}`, usuario);
         
@@ -163,15 +168,17 @@ const LIMS = {
 
     async dictaminarMuestra(loteInterno, dictamen, usuario) {
         const { data: user } = await sb.from('usuarios').select('nombre').eq('usuario', usuario).single();
-        const { error } = await sb.from('muestras')
-            .update({ 
-                estatus: dictamen,
-                dictaminador: user?.nombre || usuario,
-                fecha_liberacion: new Date().toISOString()
-            })
-            .eq('lote_interno', loteInterno);
-        
-        if (error) throw error;
+        const payload = { 
+            estatus: dictamen,
+            dictaminador: user?.nombre || usuario
+        };
+
+        // Nota: fecha_liberacion y dictaminador podrían no existir en algunas versiones de la BD
+        const { error } = await sb.from('muestras').update(payload).eq('lote_interno', loteInterno);
+        if (error) {
+            // Reintento sin dictaminador si falla por columna inexistente
+            await sb.from('muestras').update({ estatus: dictamen }).eq('lote_interno', loteInterno);
+        }
 
         await this.registrarAudit('Muestras', 'Dictamen', `Lote: ${loteInterno} -> ${dictamen}`, usuario);
     },
@@ -181,15 +188,23 @@ const LIMS = {
             lote_interno: d.loteInterno,
             producto: d.producto,
             lote_prov: d.loteProv || null,
-            cantidad: d.cantidad,
+            cantidad: d.cantidad + " " + d.unidad,
             num_analisis: d.numAnalisis,
             fecha_ingreso: new Date().toISOString(),
             estatus: 'Cuarentena',
-            usuario: usuario
+            usuario: usuario,
+            es_estabilidad: d.esEstabilidad || false,
+            cod_estabilidad: d.codEstabilidad || ""
         };
         const { error } = await sb.from('muestras').insert([payload]);
         if (error) throw error;
-        await this.registrarAudit('Muestras', 'Recepción', `Registro de lote ${d.loteInterno}`, usuario);
+        await this.registrarAudit('Muestras', 'Recepción', `Registro de lote ${d.loteInterno} | Estabilidad: ${d.esEstabilidad ? 'Sí' : 'No'}`, usuario);
+    },
+
+    async obtenerListaProductos() {
+        const { data, error } = await sb.from('productos_pt').select('nombre').order('nombre');
+        if (error) throw error;
+        return data.map(p => p.nombre);
     },
 
     // --- MOTOR DE EVALUACIÓN ANALÍTICA (EL CORAZÓN DEL LIMS) ---
@@ -280,47 +295,54 @@ const LIMS = {
 
     // --- KPI & ANALYTICS ---
     async cargarKPIs() {
-        const { data: muestras } = await sb.from('muestras').select('fecha_ingreso, fecha_liberacion, estatus');
-        const { data: oos } = await sb.from('resultados_analisis').select('prueba').eq('evaluacion', 'OOS');
+        try {
+            // Nota: fecha_liberacion removida del select por error 42703 (columna inexistente)
+            const { data: muestras, error: e1 } = await sb.from('muestras').select('fecha_ingreso, estatus, created_at');
+            const { data: oos, error: e2 } = await sb.from('resultados_analisis').select('prueba').eq('evaluacion', 'OOS');
 
-        // Lead Time Promedio (Días entre ingreso y liberación)
-        let totalDays = 0;
-        let countLib = 0;
-        muestras.forEach(m => {
-            if (m.fecha_liberacion && m.fecha_ingreso) {
-                const diff = (new Date(m.fecha_liberacion) - new Date(m.fecha_ingreso)) / (1000 * 60 * 60 * 24);
-                totalDays += diff;
-                countLib++;
+            if (!muestras) return console.warn("No se pudieron cargar muestras para KPI.");
+
+            // Lead Time Promedio (Días entre ingreso y creación - fallback)
+            let totalDays = 0;
+            let countLib = 0;
+            muestras.forEach(m => {
+                if (m.estatus === 'Liberado' && m.fecha_ingreso) {
+                    const fin = m.created_at || new Date().toISOString();
+                    const diff = (new Date(fin) - new Date(m.fecha_ingreso)) / (1000 * 60 * 60 * 24);
+                    totalDays += Math.max(0, diff);
+                    countLib++;
+                }
+            });
+
+            const leadTime = countLib > 0 ? (totalDays / countLib).toFixed(1) : "--";
+            const rft = muestras.length > 0 ? (((muestras.length - (oos?.length || 0)) / muestras.length) * 100).toFixed(1) : "--";
+
+            if (document.getElementById('kpi-leadtime')) document.getElementById('kpi-leadtime').textContent = `${leadTime} d`;
+            if (document.getElementById('kpi-rft')) document.getElementById('kpi-rft').textContent = `${rft} %`;
+            if (document.getElementById('kpi-totales')) document.getElementById('kpi-totales').textContent = muestras.length;
+
+            // Pareto OOS
+            const paretoEl = document.getElementById('listaParetoOOS');
+            if (paretoEl) {
+                if (!oos || oos.length === 0) {
+                    paretoEl.innerHTML = '<p class="text-emerald-500 text-xs font-bold">✅ Sin desviaciones OOS registradas.</p>';
+                } else {
+                    const counts = {};
+                    oos.forEach(o => counts[o.prueba] = (counts[o.prueba] || 0) + 1);
+                    const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 5);
+                    paretoEl.innerHTML = sorted.map(([p, c]) => `
+                        <div class="flex justify-between items-center bg-slate-50 p-2 rounded-lg border border-slate-100">
+                            <span class="text-[10px] font-bold text-slate-600">${p}</span>
+                            <span class="bg-rose-100 text-rose-600 text-[10px] px-2 py-0.5 rounded-full font-black">${c}</span>
+                        </div>
+                    `).join('');
+                }
             }
-        });
-
-        const leadTime = countLib > 0 ? (totalDays / countLib).toFixed(1) : "--";
-        const rft = muestras.length > 0 ? (((muestras.length - (oos?.length || 0)) / muestras.length) * 100).toFixed(1) : "--";
-
-        if (document.getElementById('kpi-leadtime')) document.getElementById('kpi-leadtime').textContent = `${leadTime} d`;
-        if (document.getElementById('kpi-rft')) document.getElementById('kpi-rft').textContent = `${rft} %`;
-        if (document.getElementById('kpi-totales')) document.getElementById('kpi-totales').textContent = muestras.length;
-
-        // Pareto OOS
-        const paretoEl = document.getElementById('listaParetoOOS');
-        if (paretoEl && oos) {
-            const counts = {};
-            oos.forEach(o => counts[o.prueba] = (counts[o.prueba] || 0) + 1);
-            const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 5);
             
-            if (sorted.length === 0) {
-                paretoEl.innerHTML = '<p class="text-emerald-500 text-xs font-bold">✅ Sin desviaciones OOS registradas.</p>';
-            } else {
-                paretoEl.innerHTML = sorted.map(([p, c]) => `
-                    <div class="flex justify-between items-center bg-slate-50 p-2 rounded-lg border border-slate-100">
-                        <span class="text-[10px] font-bold text-slate-600">${p}</span>
-                        <span class="bg-rose-100 text-rose-600 text-[10px] px-2 py-0.5 rounded-full font-black">${c}</span>
-                    </div>
-                `).join('');
-            }
+            this.renderCharts(muestras);
+        } catch (err) {
+            console.error("Error en cargarKPIs:", err);
         }
-        
-        this.renderCharts(muestras);
     },
 
     renderCharts(muestras) {

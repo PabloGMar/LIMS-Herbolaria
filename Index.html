@@ -497,22 +497,111 @@
         }
 
         // --- OPERACIONES ---
-        function openModalMuestra() {
+        async function openModalMuestra() {
             document.getElementById('modalOverlay').classList.remove('hidden');
             document.getElementById('modalContent').innerHTML = `
-                <div class="flex justify-between items-center mb-6"><h2 class="text-xl font-black text-slate-800">Nueva Muestra</h2><button onclick="closeModal()"><i class="fas fa-times text-slate-400"></i></button></div>
-                <form onsubmit="handleRegistroMuestra(event)" class="grid grid-cols-2 gap-4">
-                    <div class="col-span-2"><label class="block text-[10px] font-black text-slate-400 uppercase mb-1">Producto</label><input type="text" id="m_producto" required class="form-input"></div>
-                    <div><label class="block text-[10px] font-black text-slate-400 uppercase mb-1">Lote Int</label><input type="text" id="m_lote" required class="form-input"></div>
-                    <div><label class="block text-[10px] font-black text-slate-400 uppercase mb-1">Lote Prov</label><input type="text" id="m_prov" class="form-input"></div>
-                    <div class="col-span-2 mt-4"><button type="submit" class="btn-primary w-full py-3">Registrar</button></div>
+                <div class="flex justify-between items-center mb-8">
+                    <h2 class="text-2xl font-black text-slate-800 tracking-tight">Recepción de Muestra</h2>
+                    <button onclick="closeModal()" class="text-slate-400 hover:text-rose-500 transition-colors"><i class="fas fa-times text-xl"></i></button>
+                </div>
+                <form onsubmit="handleRegistroMuestra(event)" class="space-y-5">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                        <div class="col-span-2">
+                            <label class="block text-[10px] font-black text-slate-400 uppercase mb-1.5 tracking-widest">Producto</label>
+                            <input type="text" id="m_producto" list="listaProductos" required class="form-input" placeholder="Nombre del producto o insumo">
+                            <datalist id="listaProductos"></datalist>
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-black text-slate-400 uppercase mb-1.5 tracking-widest">Lote Interno</label>
+                            <input type="text" id="m_lote" required class="form-input" placeholder="Ej. 240510-A">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-black text-slate-400 uppercase mb-1.5 tracking-widest">Lote Proveedor</label>
+                            <input type="text" id="m_prov" class="form-input" placeholder="Lote de origen">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-black text-slate-400 uppercase mb-1.5 tracking-widest">Cantidad</label>
+                            <div class="flex">
+                                <input type="number" id="m_cant" step="any" required class="form-input !rounded-r-none" placeholder="0.00">
+                                <select id="m_unidad" class="bg-slate-50 border border-l-0 border-slate-200 rounded-r-xl px-3 text-xs font-bold text-slate-600 outline-none">
+                                    <option value="g">g</option>
+                                    <option value="mL">mL</option>
+                                    <option value="kg">kg</option>
+                                    <option value="L">L</option>
+                                    <option value="pzas">pzas</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-black text-slate-400 uppercase mb-1.5 tracking-widest">Análisis #</label>
+                            <input type="text" id="m_num" required class="form-input" placeholder="Ej. 045/24">
+                        </div>
+                    </div>
+
+                    <div class="p-4 bg-blue-50/50 rounded-2xl border border-blue-100/50 space-y-3">
+                        <label class="flex items-center gap-3 cursor-pointer group">
+                            <input type="checkbox" id="esEstabilidad" onchange="toggleEstabilidad()" class="w-5 h-5 text-blue-600 rounded-lg border-slate-300 focus:ring-blue-500 transition-all cursor-pointer">
+                            <span class="text-xs font-bold text-blue-800 group-hover:text-blue-600 transition-colors tracking-tight">¿Es Muestra de Estabilidad?</span>
+                        </label>
+                        <div id="divCodEstabilidad" class="hidden animate-fade-in">
+                            <label class="block text-[9px] font-black text-slate-400 uppercase mb-1 tracking-widest">Código de Programa</label>
+                            <input type="text" id="m_codEst" class="form-input !bg-white" placeholder="Ej. EST-VITS-2024">
+                        </div>
+                    </div>
+
+                    <div class="pt-4 flex gap-3">
+                        <button type="button" onclick="closeModal()" class="flex-1 py-4 text-slate-400 font-bold hover:bg-slate-50 rounded-2xl transition-all uppercase text-[10px] tracking-widest">Cancelar</button>
+                        <button type="submit" class="flex-1 bg-slate-900 text-white font-black py-4 rounded-2xl shadow-xl shadow-slate-200 hover:bg-slate-800 transition-all uppercase text-[10px] tracking-widest">Registrar Ingreso</button>
+                    </div>
                 </form>`;
+
+            // Cargar productos para el datalist
+            try {
+                const productos = await LIMS.obtenerListaProductos();
+                const dl = document.getElementById('listaProductos');
+                if (dl) {
+                    dl.innerHTML = productos.map(p => `<option value="${p}">`).join('');
+                }
+            } catch (err) {
+                console.error("Error cargando lista de productos:", err);
+            }
+        }
+
+        function toggleEstabilidad() {
+            const check = document.getElementById('esEstabilidad');
+            const div = document.getElementById('divCodEstabilidad');
+            if (check.checked) {
+                div.classList.remove('hidden');
+            } else {
+                div.classList.add('hidden');
+            }
         }
 
         async function handleRegistroMuestra(e) {
             e.preventDefault();
-            const data = { producto: document.getElementById('m_producto').value, loteInterno: document.getElementById('m_lote').value, loteProv: document.getElementById('m_prov').value, cantidad: 'N/A', numAnalisis: '000/24' };
-            try { await LIMS.ingresarMuestra(data, currentUser.usuario); closeModal(); Swal.fire('Éxito', 'Muestra Registrada', 'success'); actualizarDatos(); } catch (err) { Swal.fire('Error', err.message, 'error'); }
+            const data = { 
+                producto: document.getElementById('m_producto').value, 
+                loteInterno: document.getElementById('m_lote').value, 
+                loteProv: document.getElementById('m_prov').value, 
+                cantidad: document.getElementById('m_cant').value, 
+                unidad: document.getElementById('m_unidad').value,
+                numAnalisis: document.getElementById('m_num').value,
+                esEstabilidad: document.getElementById('esEstabilidad').checked,
+                codEstabilidad: document.getElementById('m_codEst').value
+            };
+            try { 
+                await LIMS.ingresarMuestra(data, currentUser.usuario); 
+                closeModal(); 
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Ingreso Exitoso',
+                    text: `Lote ${data.loteInterno} registrado en Cuarentena`,
+                    confirmButtonColor: '#0f172a'
+                }); 
+                actualizarDatos(); 
+            } catch (err) { 
+                Swal.fire('Error', err.message, 'error'); 
+            }
         }
 
         function closeModal() { document.getElementById('modalOverlay').classList.add('hidden'); }
