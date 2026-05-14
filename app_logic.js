@@ -52,16 +52,23 @@ const LIMS = {
         
         if (e1) throw e1;
 
-        // 2. Obtener especificaciones del producto
-        const { data: specs, error: e2 } = await sb.from('productos_pt')
-            .select('*')
-            .eq('producto', muestra.producto)
-            .order('id', { ascending: true });
+        // 2. Obtener el ID del producto
+        const { data: producto, error: e2 } = await sb.from('productos_pt')
+            .select('id_producto')
+            .eq('nombre', muestra.producto)
+            .single();
         
         if (e2) throw e2;
 
-        // 3. Obtener resultados ya guardados
-        const { data: resultados, error: e3 } = await sb.from('resultados_analisis')
+        // 3. Obtener especificaciones reales de la tabla de pruebas
+        const { data: specs, error: e3 } = await sb.from('pruebas_especificas_pt')
+            .select('*')
+            .eq('id_producto', producto.id_producto);
+        
+        if (e3) throw e3;
+
+        // 4. Obtener resultados ya guardados
+        const { data: resultados } = await sb.from('resultados_analisis')
             .select('*')
             .eq('lote_interno', loteInterno);
 
@@ -77,7 +84,7 @@ const LIMS = {
             estatus: muestra.estatus,
             plan: specs.map(s => ({
                 prueba: s.prueba,
-                especificacion: s.especificacion,
+                especificacion: s.limite, // En tu tabla se llama 'limite'
                 valorPrevio: mapaResultados[s.prueba]?.resultado || '',
                 evaluacion: mapaResultados[s.prueba]?.evaluacion || 'En Proceso'
             }))
@@ -85,14 +92,14 @@ const LIMS = {
     },
 
     async guardarResultado(loteInterno, prueba, valor, usuario) {
-        // Obtener especificación para evaluar
-        const { data: spec } = await sb.from('productos_pt')
-            .select('especificacion')
+        // Obtener especificación para evaluar (desde pruebas_especificas_pt)
+        const { data: spec } = await sb.from('pruebas_especificas_pt')
+            .select('limite')
             .eq('prueba', prueba)
             .limit(1)
             .single();
 
-        const evaluacion = this.evaluarResultado(valor, spec.especificacion);
+        const evaluacion = this.evaluarResultado(valor, spec ? spec.limite : '');
 
         const payload = {
             lote_interno: loteInterno,
@@ -100,7 +107,8 @@ const LIMS = {
             resultado: valor,
             evaluacion: evaluacion,
             analista: usuario,
-            fecha_analisis: new Date().toISOString()
+            fecha: new Date().toISOString(),
+            especificacion: spec ? spec.limite : ''
         };
 
         const { error } = await sb.from('resultados_analisis').upsert(payload, { onConflict: 'lote_interno, prueba' });
@@ -130,7 +138,7 @@ const LIMS = {
             num_analisis: d.numAnalisis,
             fecha_ingreso: new Date().toISOString(),
             estatus: 'Cuarentena',
-            usuario_registro: usuario
+            usuario: usuario
         };
         const { error } = await sb.from('muestras').insert([payload]);
         if (error) throw error;
@@ -176,23 +184,21 @@ const LIMS = {
     },
 
     // --- CALCULADORA QUÍMICA (INVENTARIOS) ---
-    calcularPreparacion(r, d) {
-        // r: datos del reactivo, d: datos de la preparación (volumen, concentración, tipo)
+    calcularPreparacion(d) {
+        // d: datos de la preparación (volumen, concentración, tipo, pm, extra)
         let volL = parseFloat(d.volumen) / 1000;
         let conc = parseFloat(d.concentracion);
-        let pureza = (r.pureza || 100) / 100;
-        let pm = r.pm || 0;
+        let pureza = (parseFloat(d.extra) || 100) / 100;
+        let pm = parseFloat(d.pm) || 0;
 
-        if (d.tipo === 'Medio Simple') {
-            let factor = r.factor_prep || 0;
-            return { teorico: (factor * volL).toFixed(3), unidad: 'g' };
+        if (d.tipo === 'Porcentaje') {
+            return (conc * d.volumen) / 100;
         }
-        if (d.tipo === 'Solución Molar') {
-            let masa = (conc * volL * pm) / pureza;
-            if (r.densidad > 0) return { teorico: (masa / r.densidad).toFixed(2), unidad: 'mL' };
-            return { teorico: masa.toFixed(4), unidad: 'g' };
-        }
-        return { teorico: 0, unidad: '?' };
+        
+        // Molaridad (M) o Normalidad (N)
+        // La fórmula de masa es la misma si consideramos PM como el peso equivalente en Normalidad
+        let masa = (conc * volL * pm) / pureza;
+        return masa;
     },
 
     // --- MICROBIOLOGÍA (CEPARIO) ---
@@ -218,8 +224,8 @@ const LIMS = {
 
     // --- EQUIPOS ---
     async registrarCalibracion(cod, fecha, notas, usuario) {
-        const { error } = await sb.from('equipos_log').insert([{
-            equipo_cod: cod,
+        const { error } = await sb.from('log_mantenimiento').insert([{
+            codigo_equipo: cod,
             fecha: fecha,
             tipo: 'Calibración Externa',
             descripcion: notas,
@@ -227,13 +233,12 @@ const LIMS = {
         }]);
         if (error) throw error;
         
-        // Calcular próxima fecha (ej: +12 meses)
         const proxima = new Date(fecha);
         proxima.setMonth(proxima.getMonth() + 12);
         
-        await sb.from('equipos').update({ 
-            ultima_calibracion: fecha, 
-            proxima_calibracion: proxima.toISOString() 
+        await sb.from('equipos_calibracion').update({ 
+            ultima_cal: fecha, 
+            proxima_cal: proxima.toISOString() 
         }).eq('codigo', cod);
     },
 

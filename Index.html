@@ -69,6 +69,9 @@
                 <button onclick="showView('inventarios')" id="nav-inventarios" class="nav-btn">
                     <i class="fas fa-boxes w-6 text-xl"></i> Inventarios
                 </button>
+                <button onclick="openCalculadora()" class="nav-btn text-blue-600 font-black">
+                    <i class="fas fa-calculator w-6 text-xl"></i> Calculadora Lab
+                </button>
                 <button onclick="showView('equipos')" id="nav-equipos" class="nav-btn">
                     <i class="fas fa-microscope w-6 text-xl"></i> Metrología
                 </button>
@@ -198,7 +201,7 @@
                     </div>
                     <button onclick="closeSlideOver()" class="w-12 h-12 flex items-center justify-center rounded-full bg-white shadow-sm text-slate-400 hover:text-red-500"><i class="fas fa-times text-xl"></i></button>
                 </div>
-                <div id="planAnalitico" class="flex-1 p-8 overflow-y-auto space-y-6">
+                <div id="slideOverContent" class="flex-1 p-8 overflow-y-auto space-y-6">
                     <!-- Dinámico -->
                 </div>
                 <div class="p-8 border-t border-slate-100 bg-white">
@@ -324,7 +327,7 @@
             document.getElementById('tablaPrep').innerHTML = data.preparaciones.map(p => `
                 <tr class="hover:bg-indigo-50/30">
                     <td class="px-6 py-4 font-black text-indigo-700 text-xs">${p.lote_interno}</td>
-                    <td class="px-6 py-4 text-xs"><b>${p.nombre}</b><br><span class="text-[10px] text-slate-400">${p.lote_base}</span></td>
+                    <td class="px-6 py-4 text-xs"><b>${p.tipo}</b><br><span class="text-[10px] text-slate-400">${p.receta || ''}</span></td>
                     <td class="px-6 py-4 text-slate-400 text-xs">${new Date(p.fecha_prep).toLocaleDateString()}</td>
                     <td class="px-6 py-4"><span class="status-pill ${getEstatusClass(p.estatus)}">${p.estatus}</span></td>
                 </tr>
@@ -354,13 +357,13 @@
         }
 
         async function renderEquipos() {
-            const { data } = await sb.from('equipos').select('*');
+            const { data } = await sb.from('equipos_calibracion').select('*');
             document.getElementById('tablaEquipos').innerHTML = (data || []).map(e => `
                 <tr>
                     <td class="px-6 py-4 font-bold text-slate-800 text-sm">${e.equipo}</td>
                     <td class="px-6 py-4 font-mono text-indigo-600 text-xs">${e.codigo}</td>
-                    <td class="px-6 py-4 text-sm font-black text-slate-500">${e.proxima_calibracion ? new Date(e.proxima_calibracion).toLocaleDateString() : 'N/A'}</td>
-                    <td class="px-6 py-4 text-center"><span class="status-pill bg-emerald-100 text-emerald-700">VIGENTE</span></td>
+                    <td class="px-6 py-4 text-sm font-black text-slate-500">${e.proxima_cal ? new Date(e.proxima_cal).toLocaleDateString() : 'N/A'}</td>
+                    <td class="px-6 py-4 text-center"><span class="status-pill bg-emerald-100 text-emerald-700">${e.estatus}</span></td>
                 </tr>
             `).join('');
         }
@@ -446,6 +449,8 @@
             const content = document.getElementById('slideOverContent');
             
             slideOver.classList.remove('translate-x-full');
+            document.getElementById('slideOverOverlay').classList.remove('hidden');
+            
             content.innerHTML = `<div class="p-8 text-center"><i class="fas fa-spinner fa-spin text-4xl text-blue-600"></i><p class="mt-4 font-bold">Cargando Plan de Análisis...</p></div>`;
 
             try {
@@ -530,6 +535,85 @@
                     Swal.fire('Error', err.message, 'error');
                 }
             }
+        }
+
+        // CALCULADORA CIENTÍFICA
+        function openCalculadora() {
+            document.getElementById('modalOverlay').classList.remove('hidden');
+            document.getElementById('modalContent').innerHTML = `
+                <div class="flex justify-between items-center mb-8">
+                    <h2 class="text-2xl font-black text-slate-800"><i class="fas fa-calculator mr-3 text-blue-600"></i>Calculadora de Reactivos</h2>
+                    <button onclick="closeModal()" class="text-slate-400 hover:text-red-500"><i class="fas fa-times text-xl"></i></button>
+                </div>
+                
+                <div class="grid grid-cols-1 gap-6">
+                    <div>
+                        <label class="block text-[10px] font-black text-slate-400 uppercase mb-2 tracking-widest">Tipo de Cálculo</label>
+                        <select id="calc_tipo" class="form-input" onchange="updateCalcUI()">
+                            <option value="Molaridad">Molaridad (M)</option>
+                            <option value="Normalidad">Normalidad (N)</option>
+                            <option value="Porcentaje">Porcentaje (%)</option>
+                        </select>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-[10px] font-black text-slate-400 uppercase mb-2 tracking-widest">Volumen Final (mL)</label>
+                            <input type="number" id="calc_vol" class="form-input" placeholder="Ej: 1000" oninput="runCalculo()">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-black text-slate-400 uppercase mb-2 tracking-widest">Conc. Deseada</label>
+                            <input type="number" id="calc_conc" class="form-input" placeholder="Ej: 0.1" oninput="runCalculo()">
+                        </div>
+                    </div>
+
+                    <div id="calc_extra" class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-[10px] font-black text-slate-400 uppercase mb-2 tracking-widest">Peso Molecular</label>
+                            <input type="number" id="calc_pm" class="form-input" placeholder="g/mol" oninput="runCalculo()">
+                        </div>
+                        <div>
+                            <label id="label_extra" class="block text-[10px] font-black text-slate-400 uppercase mb-2 tracking-widest">Pureza (%)</label>
+                            <input type="number" id="calc_pureza" class="form-input" value="100" oninput="runCalculo()">
+                        </div>
+                    </div>
+
+                    <div class="bg-blue-600 rounded-3xl p-8 text-center text-white shadow-xl shadow-blue-200 mt-4">
+                        <p class="text-[10px] font-black uppercase tracking-[0.2em] opacity-70 mb-2">Cantidad a Pesar/Medir</p>
+                        <h3 id="calc_resultado" class="text-5xl font-black">0.0000</h3>
+                        <p id="calc_unidad" class="text-sm font-bold mt-2 opacity-80">Gramos (g)</p>
+                    </div>
+                </div>
+            `;
+        }
+
+        function updateCalcUI() {
+            const tipo = document.getElementById('calc_tipo').value;
+            const extra = document.getElementById('calc_extra');
+            const labelExtra = document.getElementById('label_extra');
+            
+            if (tipo === 'Porcentaje') {
+                document.getElementById('calc_pm').parentElement.classList.add('hidden');
+                labelExtra.textContent = 'Concentración Base (%)';
+            } else {
+                document.getElementById('calc_pm').parentElement.classList.remove('hidden');
+                labelExtra.textContent = tipo === 'Normalidad' ? 'Equivalentes' : 'Pureza (%)';
+            }
+            runCalculo();
+        }
+
+        function runCalculo() {
+            const params = {
+                tipo: document.getElementById('calc_tipo').value,
+                volumen: parseFloat(document.getElementById('calc_vol').value) || 0,
+                concentracion: parseFloat(document.getElementById('calc_conc').value) || 0,
+                pm: parseFloat(document.getElementById('calc_pm').value) || 1,
+                extra: parseFloat(document.getElementById('calc_pureza').value) || 100
+            };
+
+            const resultado = LIMS.calcularPreparacion(params);
+            document.getElementById('calc_resultado').textContent = resultado.toFixed(4);
+            document.getElementById('calc_unidad').textContent = params.tipo === 'Porcentaje' ? 'Gramos/mL' : 'Gramos (g)';
         }
 
         function closeSlideOver() {
