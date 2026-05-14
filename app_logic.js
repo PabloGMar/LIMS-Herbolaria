@@ -173,14 +173,21 @@ const LIMS = {
             dictaminador: user?.nombre || usuario
         };
 
-        // Nota: fecha_liberacion y dictaminador podrían no existir en algunas versiones de la BD
         const { error } = await sb.from('muestras').update(payload).eq('lote_interno', loteInterno);
         if (error) {
-            // Reintento sin dictaminador si falla por columna inexistente
             await sb.from('muestras').update({ estatus: dictamen }).eq('lote_interno', loteInterno);
         }
 
         await this.registrarAudit('Muestras', 'Dictamen', `Lote: ${loteInterno} -> ${dictamen}`, usuario);
+    },
+
+    async avanzarEstadoMuestra(loteInterno, nuevoEstado, usuario) {
+        const { error } = await sb.from('muestras')
+            .update({ estatus: nuevoEstado })
+            .eq('lote_interno', loteInterno);
+        
+        if (error) throw error;
+        await this.registrarAudit('Muestras', 'Flujo', `Lote: ${loteInterno} -> ${nuevoEstado}`, usuario);
     },
 
     async ingresarMuestra(d, usuario) {
@@ -346,9 +353,11 @@ const LIMS = {
     },
 
     renderCharts(muestras) {
-        const ctx = document.getElementById('chartEstatus');
-        if (!ctx) return;
+        const ctxEstatus = document.getElementById('chartEstatus');
+        const ctxAnalistas = document.getElementById('chartAnalistas');
+        if (!ctxEstatus) return;
 
+        // 1. Gráfico de Estatus
         const counts = { Cuarentena: 0, Análisis: 0, Liberado: 0, Rechazado: 0 };
         muestras.forEach(m => {
             if (m.estatus === 'Cuarentena') counts.Cuarentena++;
@@ -357,8 +366,8 @@ const LIMS = {
             else counts.Rechazado++;
         });
 
-        if (window.myChart) window.myChart.destroy();
-        window.myChart = new Chart(ctx, {
+        if (window.myChartEstatus) window.myChartEstatus.destroy();
+        window.myChartEstatus = new Chart(ctxEstatus, {
             type: 'doughnut',
             data: {
                 labels: ['Cuarentena', 'Análisis', 'Liberado', 'Rechazado'],
@@ -366,15 +375,114 @@ const LIMS = {
                     data: [counts.Cuarentena, counts.Análisis, counts.Liberado, counts.Rechazado],
                     backgroundColor: ['#f59e0b', '#3b82f6', '#10b981', '#ef4444'],
                     borderWidth: 0,
-                    hoverOffset: 10
+                    hoverOffset: 15
                 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 10, weight: 'bold' } } } }
+                plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 9, weight: 'bold' } } } }
             }
         });
+
+        // 2. Gráfico de Analistas
+        if (!ctxAnalistas) return;
+        const analistasMap = {};
+        muestras.forEach(m => {
+            if (m.usuario) {
+                analistasMap[m.usuario] = (analistasMap[m.usuario] || 0) + 1;
+            }
+        });
+
+        const labels = Object.keys(analistasMap);
+        const values = Object.values(analistasMap);
+
+        if (window.myChartAnalistas) window.myChartAnalistas.destroy();
+        window.myChartAnalistas = new Chart(ctxAnalistas, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Muestras Procesadas',
+                    data: values,
+                    backgroundColor: '#6366f1',
+                    borderRadius: 8,
+                    barThickness: 20
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: { beginAtZero: true, grid: { display: false }, ticks: { font: { size: 9 } } },
+                    x: { grid: { display: false }, ticks: { font: { size: 9 } } }
+                },
+                plugins: { legend: { display: false } }
+            }
+        });
+    },
+
+    async compilarDatosRAP(producto, anio) {
+        const fechaInicio = `${anio}-01-01T00:00:00`;
+        const fechaFin = `${anio}-12-31T23:59:59`;
+
+        // 1. Obtener muestras del periodo
+        const { data: muestras, error: e1 } = await sb.from('muestras')
+            .select('lote_interno, created_at')
+            .eq('producto', producto)
+            .gte('created_at', fechaInicio)
+            .lte('created_at', fechaFin);
+        
+        if (e1) throw e1;
+        if (!muestras || muestras.length === 0) return { success: false, error: "No hay datos para este producto en el año seleccionado." };
+
+        const lotes = muestras.map(m => m.lote_interno);
+
+        // 2. Obtener resultados de esos lotes
+        const { data: resultados, error: e2 } = await sb.from('resultados_analisis')
+            .select('*')
+            .in('lote_interno', lotes);
+        
+        if (e2) throw e2;
+
+        // 3. Procesar Tendencias
+        const pruebas = {};
+        const oos = [];
+
+        resultados.forEach(r => {
+            if (!pruebas[r.prueba]) pruebas[r.prueba] = { n: 0, valores: [], min: Infinity, max: -Infinity };
+            
+            const valNum = parseFloat(r.resultado.replace(/[^\d.-]/g, ''));
+            if (!isNaN(valNum)) {
+                pruebas[r.prueba].valores.push(valNum);
+                pruebas[r.prueba].min = Math.min(pruebas[r.prueba].min, valNum);
+                pruebas[r.prueba].max = Math.max(pruebas[r.prueba].max, valNum);
+            }
+            pruebas[r.prueba].n++;
+
+            if (r.evaluacion === 'OOS') {
+                oos.push(r);
+            }
+        });
+
+        const tendencias = Object.entries(pruebas).map(([nombre, p]) => {
+            const sum = p.valores.reduce((a, b) => a + b, 0);
+            const prom = p.valores.length > 0 ? (sum / p.valores.length).toFixed(4) : "N/A";
+            return {
+                prueba: nombre,
+                n: p.n,
+                min: p.min === Infinity ? "N/A" : p.min,
+                max: p.max === -Infinity ? "N/A" : p.max,
+                promedio: prom
+            };
+        });
+
+        return {
+            success: true,
+            tendencias,
+            oos,
+            totalLotes: lotes.length
+        };
     },
 
     // --- MICROBIOLOGÍA (CEPARIO) ---
