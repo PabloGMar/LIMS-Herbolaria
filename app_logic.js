@@ -37,7 +37,7 @@ const LIMS = {
         const mapped = data.map(m => {
             if (m.estatus === 'Cuarentena') cC++;
             else if (m.estatus === 'En Análisis') cA++;
-            else if (m.estatus === 'Liberado') cL++;
+            else if (m.estatus === 'Liberado' || m.estatus === 'Aprobado') cL++;
             else if (m.estatus === 'Rechazado' || m.estatus === 'Investigacion') cR++;
             
             return {
