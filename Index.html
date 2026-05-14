@@ -207,8 +207,8 @@
                 <div id="slideOverContent" class="flex-1 p-8 overflow-y-auto space-y-6">
                     <!-- Dinámico -->
                 </div>
-                <div class="p-4 border-t border-slate-100 bg-white">
-                    <p class="text-[9px] text-slate-400 text-center mb-2 italic">Asegúrese de guardar antes de dictaminar</p>
+                <div class="sticky-footer bg-slate-50">
+                    <p class="text-[8px] text-slate-400 text-center uppercase font-bold tracking-widest">Sistema Certificado CFR 21 Part 11</p>
                 </div>
             </div>
         </main>
@@ -511,10 +511,10 @@
                         }).join('')}
                     </div>
 
-                    <div class="sticky bottom-0 bg-white/90 backdrop-blur-xl p-3 border-t border-slate-100 -mx-8 grid grid-cols-2 gap-2">
-                        <button onclick="guardarTodoElAvance('${lote}')" class="col-span-2 bg-slate-800 text-white py-2 rounded-lg font-bold text-[10px] uppercase tracking-widest hover:bg-slate-700 transition-all"><i class="fas fa-save mr-2"></i> Guardar Avance (FQ/MB)</button>
-                        <button id="btnAprobarLote" onclick="ejecutarDictamen('${lote}', 'Liberado')" class="bg-emerald-600 text-white py-2 rounded-lg font-bold shadow-md hover:bg-emerald-700 transition-all text-[10px] uppercase tracking-widest">Liberar Lote</button>
-                        <button onclick="ejecutarDictamen('${lote}', 'Rechazado')" class="bg-rose-600 text-white py-2 rounded-lg font-bold shadow-md hover:bg-rose-700 transition-all text-[10px] uppercase tracking-widest">Rechazar</button>
+                    <div class="sticky-footer grid grid-cols-2 gap-2">
+                        <button onclick="guardarTodoElAvance('${lote}')" class="col-span-2 bg-slate-800 text-white py-1.5 rounded-md font-bold text-[9px] uppercase tracking-widest hover:bg-slate-700 transition-all"><i class="fas fa-signature mr-2"></i> Firmar Avance (FQ/MB)</button>
+                        <button id="btnAprobarLote" onclick="ejecutarDictamen('${lote}', 'Liberado')" class="bg-emerald-600 text-white py-1.5 rounded-md font-bold shadow-sm hover:bg-emerald-700 transition-all text-[9px] uppercase tracking-widest">Liberar Lote</button>
+                        <button onclick="ejecutarDictamen('${lote}', 'Rechazado')" class="bg-rose-600 text-white py-1.5 rounded-md font-bold shadow-sm hover:bg-rose-700 transition-all text-[9px] uppercase tracking-widest">Rechazar</button>
                     </div>
                 `;
                 verificarBloqueoDictamen();
@@ -524,16 +524,30 @@
         }
 
         async function guardarTodoElAvance(lote) {
-            const inputs = document.querySelectorAll('[id^="input-"]');
-            Swal.fire({ title: 'Guardando...', didOpen: () => Swal.showLoading() });
-            
-            for (let i = 0; i < inputs.length; i++) {
-                const index = inputs[i].id.split('-')[1];
-                const prueba = inputs[i].closest('.bg-white').querySelector('h4').textContent;
-                await guardarFila(lote, prueba, index, true);
+            const { value: password } = await Swal.fire({
+                title: 'Firma Electrónica',
+                input: 'password',
+                inputLabel: 'Ingrese su contraseña para firmar el avance',
+                inputPlaceholder: '••••••••',
+                showCancelButton: true,
+                confirmButtonColor: '#2563eb'
+            });
+
+            if (password) {
+                const resAuth = await LIMS.login(currentUser.usuario, password);
+                if (!resAuth.success) return Swal.fire('Error', 'Firma inválida', 'error');
+
+                const inputs = document.querySelectorAll('[id^="input-"]');
+                Swal.fire({ title: 'Firmando y Guardando...', didOpen: () => Swal.showLoading() });
+                
+                for (let i = 0; i < inputs.length; i++) {
+                    const index = inputs[i].id.split('-')[1];
+                    const prueba = inputs[i].closest('.bg-white').querySelector('h4').textContent;
+                    await guardarFila(lote, prueba, index, true);
+                }
+                
+                Swal.fire({ icon: 'success', title: 'Avance Firmado', text: `Registrado por: ${currentUser.nombre}`, timer: 1500, showConfirmButton: false });
             }
-            
-            Swal.fire({ icon: 'success', title: 'Avance Guardado', timer: 1500, showConfirmButton: false });
         }
 
         async function guardarFila(lote, prueba, index, silent = false) {
@@ -585,19 +599,22 @@
         }
 
         async function ejecutarDictamen(lote, dictamen) {
-            const { isConfirmed } = await Swal.fire({
-                title: '¿Confirmar Dictamen?',
-                text: `El lote ${lote} pasará a estatus: ${dictamen}`,
-                icon: 'warning',
+            const { value: password } = await Swal.fire({
+                title: 'Firma de Dictamen Final',
+                text: `El lote ${lote} se marcará como ${dictamen}`,
+                input: 'password',
+                inputLabel: 'Contraseña para Firma CFR 21',
                 showCancelButton: true,
-                confirmButtonText: 'Sí, dictaminar',
-                confirmButtonColor: dictamen === 'Aprobado' ? '#10b981' : '#f43f5e'
+                confirmButtonColor: dictamen === 'Liberado' ? '#059669' : '#dc2626'
             });
 
-            if (isConfirmed) {
+            if (password) {
+                const resAuth = await LIMS.login(currentUser.usuario, password);
+                if (!resAuth.success) return Swal.fire('Error', 'Firma inválida', 'error');
+
                 try {
                     await LIMS.dictaminarMuestra(lote, dictamen, currentUser.usuario);
-                    Swal.fire('¡Dictaminado!', `El lote ha sido ${dictamen}.`, 'success');
+                    Swal.fire('¡Dictaminado!', `Lote ${dictamen} exitosamente por ${currentUser.nombre}`, 'success');
                     closeSlideOver();
                     actualizarDatos();
                 } catch (err) {

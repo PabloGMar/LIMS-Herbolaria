@@ -1,0 +1,11 @@
+# Seguridad LIMS
+.env
+node_modules/
+dist/
+.DS_Store
+*.log
+
+# No subir llaves de Supabase si son privadas
+# (Aunque la anon_key es necesaria en el cliente, 
+#  siempre es mejor usar variables de entorno en el build)
+config_secrets.js

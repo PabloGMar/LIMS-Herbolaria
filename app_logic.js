@@ -126,14 +126,32 @@ const LIMS = {
         const { error } = await sb.from('resultados_analisis').upsert(payload, { onConflict: 'lote_interno, prueba' });
         if (error) throw error;
 
+        // Registro de Firma Electrónica por Rol (FQ / MB)
+        const { data: user } = await sb.from('usuarios').select('rol, nombre').eq('usuario', usuario).single();
+        if (user) {
+            const role = user.rol.toLowerCase();
+            const upMuestra = {};
+            if (role.includes('fisicoqu')) upMuestra.analista_fq = user.nombre;
+            if (role.includes('microbio')) upMuestra.analista_mb = user.nombre;
+            
+            if (Object.keys(upMuestra).length > 0) {
+                await sb.from('muestras').update(upMuestra).eq('lote_interno', loteInterno);
+            }
+        }
+
         await this.registrarAudit('Resultados', 'Captura', `Lote: ${loteInterno} | Prueba: ${prueba} | Val: ${valor}`, usuario);
         
         return { evaluacion };
     },
 
     async dictaminarMuestra(loteInterno, dictamen, usuario) {
+        const { data: user } = await sb.from('usuarios').select('nombre').eq('usuario', usuario).single();
         const { error } = await sb.from('muestras')
-            .update({ estatus: dictamen })
+            .update({ 
+                estatus: dictamen,
+                dictaminador: user?.nombre || usuario,
+                fecha_liberacion: new Date().toISOString()
+            })
             .eq('lote_interno', loteInterno);
         
         if (error) throw error;
