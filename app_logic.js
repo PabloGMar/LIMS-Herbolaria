@@ -67,6 +67,7 @@ const LIMS = {
         const { data: muestra, error: e1 } = await sb.from('muestras')
             .select('producto, estatus')
             .eq('lote_interno', loteInterno).eq('producto', producto)
+            .limit(1)
             .single();
         
         if (e1) throw e1;
@@ -75,6 +76,7 @@ const LIMS = {
         const { data: productoData, error: e2 } = await sb.from('productos_pt')
             .select('id_producto')
             .eq('nombre', muestra.producto)
+            .limit(1)
             .single();
         
         if (e2) throw e2;
@@ -123,14 +125,25 @@ const LIMS = {
     },
 
     async guardarResultado(producto, loteInterno, prueba, valor, usuario) {
-        // Obtener especificación para evaluar (desde pruebas_especificas_pt)
-        const { data: spec } = await sb.from('pruebas_especificas_pt')
-            .select('limite')
-            .eq('prueba', prueba)
+        // 1. Obtener ID del producto para cruzar correctamente con su especificación
+        const { data: prod } = await sb.from('productos_pt')
+            .select('id_producto')
+            .eq('nombre', producto)
             .limit(1)
             .single();
 
-        const evaluacion = this.evaluarResultado(valor, spec ? spec.limite : '');
+        let limiteReal = '';
+        if (prod) {
+            const { data: spec } = await sb.from('pruebas_especificas_pt')
+                .select('limite')
+                .eq('prueba', prueba)
+                .eq('id_producto', prod.id_producto)
+                .limit(1)
+                .single();
+            if (spec) limiteReal = spec.limite;
+        }
+
+        const evaluacion = this.evaluarResultado(valor, limiteReal);
 
         const payload = {
             lote_interno: loteInterno, producto: producto,
@@ -139,13 +152,13 @@ const LIMS = {
             evaluacion: evaluacion,
             analista: usuario,
             fecha: new Date().toISOString(),
-            especificacion: spec ? spec.limite : ''
+            especificacion: limiteReal
         };
 
         const { error } = await sb.from('resultados_analisis').upsert(payload, { onConflict: 'producto, lote_interno, prueba' });
         if (error) throw error;
 
-        // Intento seguro de Registro de Firma Electrónica por Rol (FQ / MB)
+        // Registro de Firma Electrónica
         try {
             const { data: user } = await sb.from('usuarios').select('rol, nombre').eq('usuario', usuario).single();
             if (user) {
@@ -155,7 +168,6 @@ const LIMS = {
                 if (role.includes('microbio')) upMuestra.analista_mb = user.nombre;
                 
                 if (Object.keys(upMuestra).length > 0) {
-                    // Update parcial solo si las columnas existen (PostgREST ignorará si fallan o podemos capturar)
                     await sb.from('muestras').update(upMuestra).eq('lote_interno', loteInterno).eq('producto', producto);
                 }
             }
@@ -675,15 +687,7 @@ const LIMS = {
         if (error) throw error;
         return data;
     },
-
-    async avanzarEstadoMuestra(lote, nuevoEstado, usuario) {
-        const { error } = await sb.from('muestras').update({ estatus: nuevoEstado }).eq('lote_interno', lote);
-        if (error) throw error;
-        await this.registrarAudit('Muestras', 'Cambio de Estado', `Lote ${lote} movido a ${nuevoEstado}`, usuario);
-        renderMuestras(); // Refrescar tabla
-        showToast(`✅ Muestra movida a ${nuevoEstado}`);
-    },
-
+    
     async prepararDatosParaCoA(producto, loteInterno) {
         // 1. Datos de muestra
         const { data: m, error: e1 } = await sb.from('muestras').select('*').eq('lote_interno', loteInterno).eq('producto', producto).single();
