@@ -683,7 +683,7 @@
                 tbody.innerHTML = muestras.map(m => `
                     <tr class="hover:bg-slate-50 transition-all border-b border-slate-50">
                         <td class="w-10 text-center">
-                            <input type="checkbox" value="${m.loteInterno}" onchange="updateBulkUI()" class="sample-check w-4 h-4 rounded border-slate-300">
+                           <input type="checkbox" value="${m.producto}|${m.loteInterno}" onchange="updateBulkUI()" class="sample-check w-4 h-4 rounded border-slate-300">
                         </td>
                         <td class="font-black text-slate-700 text-xs cursor-pointer" onclick="openSlideOver('${m.producto}', '${m.loteInterno}')">${m.loteInterno}</td>
                         <td class="font-medium text-slate-600 text-[11px]">${m.producto}</td>
