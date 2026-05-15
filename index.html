@@ -1171,12 +1171,13 @@
             const selected = Array.from(document.querySelectorAll('.sample-check:checked')).map(c => c.value);
             Swal.fire({ title: 'Iniciando Análisis...', didOpen: () => Swal.showLoading() });
             try {
-                for (const lote of selected) {
-                    await LIMS.avanzarEstadoMuestra(lote, 'En Análisis', currentUser.usuario);
+                for (const item of selected) {
+                    const [prod, lote] = item.split('|');
+                    await LIMS.avanzarEstadoMuestra(prod, lote, 'En Análisis', currentUser.usuario);
                 }
                 document.getElementById('select-all').checked = false;
                 updateBulkUI();
-                renderMuestras();
+                await renderMuestras();
                 Swal.fire('Éxito', 'Análisis masivo iniciado.', 'success');
             } catch (err) { Swal.fire('Error', err.message, 'error'); }
         }
