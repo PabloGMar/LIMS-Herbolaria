@@ -689,12 +689,22 @@ const LIMS = {
     },
     
     async prepararDatosParaCoA(producto, loteInterno) {
-        // 1. Datos de muestra
-        const { data: m, error: e1 } = await sb.from('muestras').select('*').eq('lote_interno', loteInterno).eq('producto', producto).single();
+        // 1. Datos de muestra (BLINDADO CON limit(1))
+        const { data: m, error: e1 } = await sb.from('muestras')
+            .select('*')
+            .eq('lote_interno', loteInterno)
+            .eq('producto', producto)
+            .limit(1)
+            .single();
+            
         if (e1) throw e1;
 
         // 2. Resultados y Firmas
-        const { data: resultados, error: e2 } = await sb.from('resultados_analisis').select('*').eq('lote_interno', loteInterno).eq('producto', producto);
+        const { data: resultados, error: e2 } = await sb.from('resultados_analisis')
+            .select('*')
+            .eq('lote_interno', loteInterno)
+            .eq('producto', producto);
+            
         if (e2) throw e2;
 
         // 3. Usuarios Activos para traducir nombres/roles
@@ -743,7 +753,6 @@ const LIMS = {
             }))
         };
     }
-};
 
 // Proxy para compatibilidad con código antiguo
 window.google = {
