@@ -48,8 +48,8 @@ const LIMS = {
                 estatus: m.estatus,
                 fechaIngreso: m.fecha_ingreso,
                 numAnalisis: m.num_analisis,
-                esEstabilidad: m.es_estabilidad,
-                codEstabilidad: m.cod_estabilidad
+                esEstabilidad: m.tipo_analisis === 'Estabilidad',
+                codEstabilidad: m.codigo_estabilidad
             };
         });
 
@@ -200,8 +200,8 @@ const LIMS = {
             fecha_ingreso: new Date().toISOString(),
             estatus: 'Cuarentena',
             usuario: usuario,
-            es_estabilidad: d.esEstabilidad || false,
-            cod_estabilidad: d.codEstabilidad || ""
+            tipo_analisis: d.esEstabilidad ? 'Estabilidad' : 'Rutina',
+            codigo_estabilidad: d.codEstabilidad || ""
         };
         const { error } = await sb.from('muestras').insert([payload]);
         if (error) throw error;
