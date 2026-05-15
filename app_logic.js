@@ -62,11 +62,11 @@ const LIMS = {
         return mapped;
     },
 
-    async obtenerPlanDeAnalisis(loteInterno) {
+    async obtenerPlanDeAnalisis(producto, loteInterno) {
         // 1. Obtener datos de la muestra
         const { data: muestra, error: e1 } = await sb.from('muestras')
             .select('producto, estatus')
-            .eq('lote_interno', loteInterno)
+            .eq('lote_interno', loteInterno).eq('producto', producto)
             .single();
         
         if (e1) throw e1;
@@ -89,7 +89,7 @@ const LIMS = {
         // 4. Obtener resultados ya guardados
         const { data: resultados } = await sb.from('resultados_analisis')
             .select('*')
-            .eq('lote_interno', loteInterno);
+            .eq('lote_interno', loteInterno).eq('producto', producto);
 
         const mapaResultados = {};
         if (resultados) {
@@ -122,7 +122,7 @@ const LIMS = {
         };
     },
 
-    async guardarResultado(loteInterno, prueba, valor, usuario) {
+    async guardarResultado(producto, loteInterno, prueba, valor, usuario) {
         // Obtener especificación para evaluar (desde pruebas_especificas_pt)
         const { data: spec } = await sb.from('pruebas_especificas_pt')
             .select('limite')
@@ -133,7 +133,7 @@ const LIMS = {
         const evaluacion = this.evaluarResultado(valor, spec ? spec.limite : '');
 
         const payload = {
-            lote_interno: loteInterno,
+            lote_interno: loteInterno, producto: producto,
             prueba: prueba,
             resultado: valor,
             evaluacion: evaluacion,
@@ -142,7 +142,7 @@ const LIMS = {
             especificacion: spec ? spec.limite : ''
         };
 
-        const { error } = await sb.from('resultados_analisis').upsert(payload, { onConflict: 'lote_interno, prueba' });
+        const { error } = await sb.from('resultados_analisis').upsert(payload, { onConflict: 'producto, lote_interno, prueba' });
         if (error) throw error;
 
         // Intento seguro de Registro de Firma Electrónica por Rol (FQ / MB)
@@ -156,7 +156,7 @@ const LIMS = {
                 
                 if (Object.keys(upMuestra).length > 0) {
                     // Update parcial solo si las columnas existen (PostgREST ignorará si fallan o podemos capturar)
-                    await sb.from('muestras').update(upMuestra).eq('lote_interno', loteInterno);
+                    await sb.from('muestras').update(upMuestra).eq('lote_interno', loteInterno).eq('producto', producto);
                 }
             }
         } catch (e) { console.warn("Columnas analista_fq/mb no encontradas en 'muestras'.", e); }
@@ -166,25 +166,25 @@ const LIMS = {
         return { evaluacion };
     },
 
-    async dictaminarMuestra(loteInterno, dictamen, usuario) {
+    async dictaminarMuestra(producto, loteInterno, dictamen, usuario) {
         const { data: user } = await sb.from('usuarios').select('nombre').eq('usuario', usuario).single();
         const payload = { 
             estatus: dictamen,
             dictaminador: user?.nombre || usuario
         };
 
-        const { error } = await sb.from('muestras').update(payload).eq('lote_interno', loteInterno);
+        const { error } = await sb.from('muestras').update(payload).eq('lote_interno', loteInterno).eq('producto', producto);
         if (error) {
-            await sb.from('muestras').update({ estatus: dictamen }).eq('lote_interno', loteInterno);
+            await sb.from('muestras').update({ estatus: dictamen }).eq('lote_interno', loteInterno).eq('producto', producto);
         }
 
         await this.registrarAudit('Muestras', 'Dictamen', `Lote: ${loteInterno} -> ${dictamen}`, usuario);
     },
 
-    async avanzarEstadoMuestra(loteInterno, nuevoEstado, usuario) {
+    async avanzarEstadoMuestra(producto, loteInterno, nuevoEstado, usuario) {
         const { error } = await sb.from('muestras')
             .update({ estatus: nuevoEstado })
-            .eq('lote_interno', loteInterno);
+            .eq('lote_interno', loteInterno).eq('producto', producto);
         
         if (error) throw error;
         await this.registrarAudit('Muestras', 'Flujo', `Lote: ${loteInterno} -> ${nuevoEstado}`, usuario);
@@ -684,13 +684,13 @@ const LIMS = {
         showToast(`✅ Muestra movida a ${nuevoEstado}`);
     },
 
-    async prepararDatosParaCoA(loteInterno) {
+    async prepararDatosParaCoA(producto, loteInterno) {
         // 1. Datos de muestra
-        const { data: m, error: e1 } = await sb.from('muestras').select('*').eq('lote_interno', loteInterno).single();
+        const { data: m, error: e1 } = await sb.from('muestras').select('*').eq('lote_interno', loteInterno).eq('producto', producto).single();
         if (e1) throw e1;
 
         // 2. Resultados y Firmas
-        const { data: resultados, error: e2 } = await sb.from('resultados_analisis').select('*').eq('lote_interno', loteInterno);
+        const { data: resultados, error: e2 } = await sb.from('resultados_analisis').select('*').eq('lote_interno', loteInterno).eq('producto', producto);
         if (e2) throw e2;
 
         // 3. Usuarios Activos para traducir nombres/roles
