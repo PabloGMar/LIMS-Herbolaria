@@ -72,7 +72,7 @@ const LIMS = {
         if (e1) throw e1;
 
         // 2. Obtener el ID del producto
-        const { data: producto, error: e2 } = await sb.from('productos_pt')
+        const { data: productoData, error: e2 } = await sb.from('productos_pt')
             .select('id_producto')
             .eq('nombre', muestra.producto)
             .single();
@@ -82,7 +82,7 @@ const LIMS = {
         // 3. Obtener especificaciones reales de la tabla de pruebas
         const { data: specs, error: e3 } = await sb.from('pruebas_especificas_pt')
             .select('*')
-            .eq('id_producto', producto.id_producto);
+            .eq('id_producto', productoData.id_producto);
         
         if (e3) throw e3;
 
