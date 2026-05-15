@@ -857,14 +857,14 @@
             const content = document.getElementById('slideOverContent');
             content.innerHTML = `<div class="p-8 text-center"><i class="fas fa-spinner fa-spin text-blue-600 text-3xl"></i></div>`;
             try {
-                const info = await LIMS.obtenerPlanDeAnalisis(lote);
+                const info = await LIMS.obtenerPlanDeAnalisis(producto, lote);
                 const btnPDF = document.getElementById('btnGenerarPDF');
                 if (btnPDF) btnPDF.classList.toggle('hidden', !(info.estatus === 'Liberado' || info.estatus === 'Rechazado'));
 
                 content.innerHTML = info.plan.map((p, i) => {
-                    let inputHTML = `<input type="text" id="input-${i}" value="${p.valorPrevio}" class="form-input text-xs" onchange="guardarFila('${lote}', '${p.prueba}', ${i})">`;
-                    if (p.tipoUI === 'cualitativa') inputHTML = `<select id="input-${i}" class="form-input text-xs" onchange="guardarFila('${lote}', '${p.prueba}', ${i})"><option value="">...</option><option value="${p.especificacion}" ${p.valorPrevio === p.especificacion ? 'selected' : ''}>${p.especificacion}</option><option value="Otro" ${p.valorPrevio && p.valorPrevio !== p.especificacion ? 'selected' : ''}>Otro</option></select>`;
-                    if (p.tipoUI === 'compleja') inputHTML = `<select id="input-${i}" class="form-input text-xs" onchange="guardarFila('${lote}', '${p.prueba}', ${i})"><option value="">...</option><option value="Cumple con la prueba" ${p.valorPrevio === 'Cumple con la prueba' ? 'selected' : ''}>Cumple</option><option value="No cumple" ${p.valorPrevio === 'No cumple' ? 'selected' : ''}>No cumple</option></select>`;
+                    let inputHTML = `<input type="text" id="input-${i}" value="${p.valorPrevio}" class="form-input text-xs" onchange="guardarFila('${producto}', '${lote}', '${p.prueba}', ${i})">`;
+                    if (p.tipoUI === 'cualitativa') inputHTML = `<select id="input-${i}" class="form-input text-xs" onchange="guardarFila('${producto}', '${lote}', '${p.prueba}', ${i})"><option value="">...</option><option value="${p.especificacion}" ${p.valorPrevio === p.especificacion ? 'selected' : ''}>${p.especificacion}</option><option value="Otro" ${p.valorPrevio && p.valorPrevio !== p.especificacion ? 'selected' : ''}>Otro</option></select>`;
+                    if (p.tipoUI === 'compleja') inputHTML = `<select id="input-${i}" class="form-input text-xs" onchange="guardarFila('${producto}', '${lote}', '${p.prueba}', ${i})"><option value="">...</option><option value="Cumple con la prueba" ${p.valorPrevio === 'Cumple con la prueba' ? 'selected' : ''}>Cumple</option><option value="No cumple" ${p.valorPrevio === 'No cumple' ? 'selected' : ''}>No cumple</option></select>`;
                     return `<div class="bg-white rounded-xl p-3 border ${p.evaluacion === 'OOS' ? 'border-rose-200 bg-rose-50/30' : 'border-slate-100'} shadow-sm mb-2 transition-all">
                         <div class="flex justify-between mb-1"><h4 class="font-black text-slate-700 text-[9px] uppercase">${p.prueba}</h4><span id="eval-${i}" class="status-pill text-[8px] ${getEstatusClass(p.evaluacion)}">${p.evaluacion}</span></div>
                         <p class="text-[9px] text-slate-400 mb-2 italic">Límite: ${p.especificacion}</p>${inputHTML}</div>`;
@@ -958,7 +958,7 @@
 
         function closeSlideOver() { document.getElementById('slideOver').classList.add('translate-x-full'); document.getElementById('slideOverOverlay').classList.add('hidden'); }
 
-        async function guardarFila(lote, prueba, index) {
+        async function guardarFila(producto, lote, prueba, index) {
             const val = document.getElementById(`input-${index}`).value;
             try {
                 const res = await LIMS.guardarResultado(producto, lote, prueba, val, currentUser.usuario);
