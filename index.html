@@ -548,6 +548,7 @@
         let currentView = 'muestras';
         let currentSubTab = 'stock';
         let currentLote = null;
+        let currentProducto = null;
 
         // --- NAVEGACIÓN ---
         async function showView(view) {
@@ -684,11 +685,11 @@
                         <td class="w-10 text-center">
                             <input type="checkbox" value="${m.loteInterno}" onchange="updateBulkUI()" class="sample-check w-4 h-4 rounded border-slate-300">
                         </td>
-                        <td class="font-black text-slate-700 text-xs cursor-pointer" onclick="openSlideOver('${m.loteInterno}')">${m.loteInterno}</td>
+                        <td class="font-black text-slate-700 text-xs cursor-pointer" onclick="openSlideOver('${m.producto}', '${m.loteInterno}')">${m.loteInterno}</td>
                         <td class="font-medium text-slate-600 text-[11px]">${m.producto}</td>
                         <td><span class="status-pill ${getEstatusClass(m.estatus)}">${m.estatus}</span></td>
                         <td class="text-[10px] text-slate-400 font-mono">${new Date(m.fechaIngreso).toLocaleDateString()}</td>
-                        <td class="text-right cursor-pointer" onclick="openSlideOver('${m.loteInterno}')"><i class="fas fa-chevron-right text-slate-300"></i></td>
+                        <td class="text-right cursor-pointer" onclick="openSlideOver('${m.producto}', '${m.loteInterno}')"><i class="fas fa-chevron-right text-slate-300"></i></td>
                     </tr>
                 `).join('');
             } catch (err) { console.error(err); }
@@ -775,7 +776,7 @@
                         </div>
                         <div>
                             <label class="block text-[10px] font-black text-slate-400 uppercase mb-1.5 tracking-widest">Análisis #</label>
-                            <input type="text" id="m_num" required class="form-input" placeholder="Ej. 045/24">
+                            <input type="text" id="m_num" required class="form-input" placeholder="Ej. 045/24" oninput="this.value = this.value.toUpperCase().replace(/[^A-Z0-9\-\/]/g, '')">
                         </div>
                     </div>
 
@@ -786,7 +787,7 @@
                         </label>
                         <div id="divCodEstabilidad" class="hidden animate-fade-in">
                             <label class="block text-[9px] font-black text-slate-400 uppercase mb-1 tracking-widest">Código de Programa</label>
-                            <input type="text" id="m_codEst" class="form-input !bg-white" placeholder="Ej. EST-VITS-2024">
+                            <input type="text" id="m_codEst" class="form-input !bg-white" placeholder="Ej. EST-VITS-2024" oninput="this.value = this.value.toUpperCase().replace(/[^A-Z0-9\-\/]/g, '')">
                         </div>
                     </div>
 
@@ -847,8 +848,9 @@
 
         function closeModal() { document.getElementById('modalOverlay').classList.add('hidden'); }
 
-        async function openSlideOver(lote) {
+        async function openSlideOver(producto, lote) {
             currentLote = lote;
+            currentProducto = producto;
             document.getElementById('slideOver').classList.remove('translate-x-full');
             document.getElementById('slideOverOverlay').classList.remove('hidden');
             document.getElementById('slideOverLote').textContent = `Lote: ${lote}`;
@@ -926,10 +928,10 @@
 
         async function avanzarAnalisis() {
             try {
-                await LIMS.avanzarEstadoMuestra(currentLote, 'En Análisis', currentUser.usuario);
+                await LIMS.avanzarEstadoMuestra(currentProducto, currentLote, 'En Análisis', currentUser.usuario);
                 Swal.fire({ title: 'Análisis Iniciado', icon: 'success', timer: 1500, showConfirmButton: false });
                 actualizarDatos();
-                openSlideOver(currentLote); // Refrescar vista
+                openSlideOver(currentProducto, currentLote); // Refrescar vista
             } catch (err) { Swal.fire('Error', err.message, 'error'); }
         }
 
@@ -946,10 +948,10 @@
                 const auth = await LIMS.login(currentUser.usuario, password);
                 if (!auth.success) return Swal.fire('Error', 'Firma inválida', 'error');
                 try { 
-                    await LIMS.avanzarEstadoMuestra(currentLote, nuevoEstado, currentUser.usuario); 
+                    await LIMS.avanzarEstadoMuestra(currentProducto, currentLote, nuevoEstado, currentUser.usuario); 
                     Swal.fire('¡Éxito!', `Lote actualizado a ${nuevoEstado}`, 'success'); 
                     actualizarDatos(); 
-                    openSlideOver(currentLote); // Refrescar vista
+                    openSlideOver(currentProducto, currentLote); // Refrescar vista
                 } catch (err) { Swal.fire('Error', err.message, 'error'); }
             }
         }
@@ -959,7 +961,7 @@
         async function guardarFila(lote, prueba, index) {
             const val = document.getElementById(`input-${index}`).value;
             try {
-                const res = await LIMS.guardarResultado(lote, prueba, val, currentUser.usuario);
+                const res = await LIMS.guardarResultado(producto, lote, prueba, val, currentUser.usuario);
                 const badge = document.getElementById(`eval-${index}`);
                 badge.textContent = res.evaluacion;
                 badge.className = `status-pill text-[8px] ${getEstatusClass(res.evaluacion)}`;
